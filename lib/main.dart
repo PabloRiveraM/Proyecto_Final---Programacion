@@ -11,14 +11,14 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Estructuras de Datos',
-      debugShowCheckedModeBanner: false, // Quita la etiqueta de "DEBUG"
+      debugShowCheckedModeBanner: false, 
       theme: ThemeData(
         // === PALETA DE COLORES DEL PROYECTO ===
         scaffoldBackgroundColor: Colors.white, // Fondo blanco
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.black,
           primary: Colors.black,                 // Negro (Formal)
-          secondary: Colors.blueGrey.shade700,   // Gris azulado (Elegante/Complementario)
+          secondary: Colors.blueGrey.shade700,   // Gris azulado 
           surface: Colors.white,                 // Tarjetas blancas
           error: Colors.red.shade700,            // Para alertas
         ),
@@ -44,7 +44,6 @@ class MyApp extends StatelessWidget {
 }
 
 // === PANTALLA TEMPORAL DE INICIO ===
-// (Marly modificará esto después en un archivo separado)
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
