@@ -13,7 +13,6 @@ class ItemModel {
     required this.precio,
   });
 
-  // Parseo defensivo: la IA puede mandar números como String ("65" en vez de 65)
   factory ItemModel.fromJson(Map<String, dynamic> json) {
     return ItemModel(
       id: _parseInt(json['id']),
@@ -24,7 +23,6 @@ class ItemModel {
     );
   }
 
-  // Convierte el objeto de vuelta a JSON (útil para enviar a la IA)
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -35,7 +33,6 @@ class ItemModel {
     };
   }
 
-  // === Helpers para parseo seguro ===
   static int _parseInt(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value;
