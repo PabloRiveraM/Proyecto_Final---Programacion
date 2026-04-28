@@ -1,29 +1,56 @@
 class ItemModel {
   final int id;
-  final String name;
-  final String status;
-  final String imageUrl;
+  final String nombre;
+  final String categoria;
+  final int watts;
+  final double precio;
 
   ItemModel({
     required this.id,
-    required this.name,
-    required this.status,
-    required this.imageUrl,
+    required this.nombre,
+    required this.categoria,
+    required this.watts,
+    required this.precio,
   });
 
-  // Este método "fábrica" toma el JSON de internet y lo convierte en un objeto de Dart
   factory ItemModel.fromJson(Map<String, dynamic> json) {
     return ItemModel(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? 'Desconocido',
-      status: json['status'] ?? 'Desconocido',
-      imageUrl: json['image'] ?? '',
+      id: _parseInt(json['id']),
+      nombre: json['nombre']?.toString() ?? 'Desconocido',
+      categoria: json['categoria']?.toString() ?? 'General',
+      watts: _parseInt(json['watts']),
+      precio: _parseDouble(json['precio']),
     );
   }
 
-  // Útil para imprimir en consola y ver si funciona
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nombre': nombre,
+      'categoria': categoria,
+      'watts': watts,
+      'precio': precio,
+    };
+  }
+
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
   @override
   String toString() {
-    return 'ItemModel(id: $id, name: $name)';
+    return '$nombre ($categoria) - ${watts}W - Q$precio';
   }
 }
