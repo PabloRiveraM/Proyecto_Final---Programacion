@@ -12,23 +12,29 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PC Assembler',
+      title: 'Estructuras de Datos',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFF0D0D1A),
+        // === PALETA DE COLORES ORIGINAL DEL PROYECTO ===
+        scaffoldBackgroundColor: Colors.white,
         colorScheme: ColorScheme.fromSeed(
-          brightness: Brightness.dark,
-          seedColor: const Color(0xFF00E5FF),
-          primary: const Color(0xFF00E5FF),
-          secondary: const Color(0xFF7C4DFF),
-          surface: const Color(0xFF1A1A2E),
-          error: const Color(0xFFFF1744),
+          seedColor: Colors.black,
+          primary: Colors.black,               // Negro (Formal)
+          secondary: Colors.blueGrey.shade700, // Gris azulado
+          surface: Colors.white,               // Tarjetas blancas
+          error: Colors.red.shade700,          // Para alertas
         ),
+        // Estilo de la barra superior
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF1A1A2E),
-          foregroundColor: Color(0xFFE0E0E0),
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
           elevation: 0,
           centerTitle: true,
+        ),
+        // Estilo de los botones flotantes
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: Colors.blueGrey.shade700,
+          foregroundColor: Colors.white,
         ),
         useMaterial3: true,
       ),
@@ -52,12 +58,11 @@ class _HomeScreenState extends State<HomeScreen>
   late Animation<double> _fadeIn;
   late Animation<Offset> _slideUp;
 
-  static const Color _bgBase = Color(0xFF0D0D1A);
-  static const Color _bgCard = Color(0xFF1A1A2E);
-  static const Color _cyan = Color(0xFF00E5FF);
-  static const Color _purple = Color(0xFF7C4DFF);
-  static const Color _textPrimary = Color(0xFFE0E0E0);
-  static const Color _textSecondary = Color(0xFF9E9E9E);
+  // === PALETA DE COLORES ORIGINAL DEL PROYECTO ===
+  static const Color _bgBase = Colors.white;
+  static const Color _bgCard = Color(0xFFF5F5F5);
+  static const Color _textPrimary = Colors.black;
+  static const Color _textSecondary = Color(0xFF607D8B); // blueGrey
 
   @override
   void initState() {
@@ -142,29 +147,25 @@ class _HomeScreenState extends State<HomeScreen>
           width: 60,
           height: 60,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [_cyan, _purple],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: Colors.black,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: _cyan.withValues(alpha: 0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 6),
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           child: const Icon(Icons.computer_rounded,
-              color: Colors.black, size: 32),
+              color: Colors.white, size: 32),
         ),
         const SizedBox(height: 20),
         const Text(
-          'PC Assembler',
+          'Estructuras de Datos',
           style: TextStyle(
             color: _textPrimary,
-            fontSize: 30,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
             letterSpacing: -0.5,
           ),
@@ -210,21 +211,13 @@ class _HomeScreenState extends State<HomeScreen>
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              _cyan.withValues(alpha: 0.15),
-              _purple.withValues(alpha: 0.15),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: Colors.black,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _cyan.withValues(alpha: 0.4)),
           boxShadow: [
             BoxShadow(
-              color: _cyan.withValues(alpha: 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 6),
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -234,48 +227,45 @@ class _HomeScreenState extends State<HomeScreen>
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [_cyan, _purple],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: const Icon(Icons.link_rounded,
-                  color: Colors.black, size: 28),
+                  color: Colors.white, size: 28),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
+                children: [
+                  const Text(
                     'Gestión Lineal',
                     style: TextStyle(
-                      color: _textPrimary,
+                      color: Colors.white,
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 4),
-                  Text(
+                  const SizedBox(height: 4),
+                  const Text(
                     'Lista Enlazada · Pila (Deshacer)',
-                    style:
-                        TextStyle(color: _textSecondary, fontSize: 13),
+                    style: TextStyle(
+                        color: Color(0xFFBDBDBD), fontSize: 13),
                   ),
-                  SizedBox(height: 6),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
-                      _ChipLabel(label: 'Ensamblador', color: _cyan),
-                      SizedBox(width: 6),
-                      _ChipLabel(label: 'IA + RAG', color: _purple),
+                      _ChipLabel(
+                          label: 'Ensamblador', color: Colors.white),
+                      const SizedBox(width: 6),
+                      _ChipLabel(label: 'IA + RAG', color: Colors.white),
                     ],
                   ),
                 ],
               ),
             ),
             const Icon(Icons.arrow_forward_ios_rounded,
-                color: _cyan, size: 18),
+                color: Colors.white, size: 18),
           ],
         ),
       ),
@@ -293,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen>
       decoration: BoxDecoration(
         color: _bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _textSecondary.withValues(alpha: 0.15)),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Row(
         children: [
@@ -301,11 +291,10 @@ class _HomeScreenState extends State<HomeScreen>
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
+              color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon,
-                color: color.withValues(alpha: 0.5), size: 22),
+            child: Icon(icon, color: Colors.grey.shade400, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -314,16 +303,16 @@ class _HomeScreenState extends State<HomeScreen>
               children: [
                 Text(
                   titulo,
-                  style: TextStyle(
-                    color: _textSecondary.withValues(alpha: 0.8),
+                  style: const TextStyle(
+                    color: Color(0xFF9E9E9E),
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                   ),
                 ),
                 Text(
                   descripcion,
-                  style: TextStyle(
-                    color: _textSecondary.withValues(alpha: 0.5),
+                  style: const TextStyle(
+                    color: Color(0xFFBDBDBD),
                     fontSize: 12,
                   ),
                 ),
@@ -334,13 +323,13 @@ class _HomeScreenState extends State<HomeScreen>
             padding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: _textSecondary.withValues(alpha: 0.1),
+              color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Text(
               'Próximo',
               style: TextStyle(
-                  color: _textSecondary,
+                  color: Color(0xFF9E9E9E),
                   fontSize: 11,
                   fontWeight: FontWeight.bold),
             ),
@@ -355,7 +344,7 @@ class _HomeScreenState extends State<HomeScreen>
       child: Text(
         'Estructuras de Datos • 2026',
         style: TextStyle(
-          color: _textSecondary.withValues(alpha: 0.4),
+          color: _textSecondary.withValues(alpha: 0.5),
           fontSize: 11,
         ),
       ),
