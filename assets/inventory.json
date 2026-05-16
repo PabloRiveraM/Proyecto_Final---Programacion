@@ -1,0 +1,39 @@
+{
+  "results": [
+    { "id": 1, "nombre": "AMD Ryzen 5 5600X", "categoria": "Procesador", "watts": 65, "precio": 150.0 },
+    { "id": 2, "nombre": "AMD Ryzen 7 5800X", "categoria": "Procesador", "watts": 105, "precio": 230.0 },
+    { "id": 3, "nombre": "AMD Ryzen 9 5900X", "categoria": "Procesador", "watts": 105, "precio": 350.0 },
+    { "id": 4, "nombre": "Intel Core i5-12400F", "categoria": "Procesador", "watts": 65, "precio": 140.0 },
+    { "id": 5, "nombre": "Intel Core i7-12700K", "categoria": "Procesador", "watts": 125, "precio": 320.0 },
+    { "id": 6, "nombre": "Intel Core i9-13900K", "categoria": "Procesador", "watts": 253, "precio": 550.0 },
+
+    { "id": 7, "nombre": "ASUS ROG Strix B550-F", "categoria": "Motherboard", "watts": 40, "precio": 180.0 },
+    { "id": 8, "nombre": "MSI MAG B550 TOMAHAWK", "categoria": "Motherboard", "watts": 45, "precio": 170.0 },
+    { "id": 9, "nombre": "Gigabyte B660M DS3H", "categoria": "Motherboard", "watts": 35, "precio": 110.0 },
+    { "id": 10, "nombre": "ASUS TUF Gaming Z690-Plus", "categoria": "Motherboard", "watts": 50, "precio": 250.0 },
+    { "id": 11, "nombre": "ASRock X570 Phantom", "categoria": "Motherboard", "watts": 45, "precio": 200.0 },
+
+    { "id": 12, "nombre": "Corsair Vengeance LPX 16GB DDR4", "categoria": "RAM", "watts": 10, "precio": 55.0 },
+    { "id": 13, "nombre": "G.Skill Ripjaws V 32GB DDR4", "categoria": "RAM", "watts": 15, "precio": 90.0 },
+    { "id": 14, "nombre": "Kingston Fury Beast 16GB DDR5", "categoria": "RAM", "watts": 12, "precio": 75.0 },
+    { "id": 15, "nombre": "Corsair Dominator Platinum 32GB DDR5", "categoria": "RAM", "watts": 18, "precio": 160.0 },
+
+    { "id": 16, "nombre": "NVIDIA GeForce RTX 3060", "categoria": "Tarjeta Grafica", "watts": 170, "precio": 300.0 },
+    { "id": 17, "nombre": "NVIDIA GeForce RTX 4070", "categoria": "Tarjeta Grafica", "watts": 200, "precio": 600.0 },
+    { "id": 18, "nombre": "NVIDIA GeForce RTX 4090", "categoria": "Tarjeta Grafica", "watts": 450, "precio": 1600.0 },
+    { "id": 19, "nombre": "AMD Radeon RX 6600", "categoria": "Tarjeta Grafica", "watts": 132, "precio": 200.0 },
+    { "id": 20, "nombre": "AMD Radeon RX 7800 XT", "categoria": "Tarjeta Grafica", "watts": 263, "precio": 500.0 },
+    { "id": 21, "nombre": "AMD Radeon RX 7900 XTX", "categoria": "Tarjeta Grafica", "watts": 355, "precio": 999.0 },
+
+    { "id": 22, "nombre": "Samsung 980 Pro 1TB NVMe", "categoria": "Almacenamiento", "watts": 7, "precio": 80.0 },
+    { "id": 23, "nombre": "Kingston NV2 2TB NVMe", "categoria": "Almacenamiento", "watts": 6, "precio": 110.0 },
+    { "id": 24, "nombre": "Crucial MX500 1TB SSD SATA", "categoria": "Almacenamiento", "watts": 5, "precio": 65.0 },
+    { "id": 25, "nombre": "Seagate Barracuda 2TB HDD", "categoria": "Almacenamiento", "watts": 8, "precio": 50.0 },
+    { "id": 26, "nombre": "WD Black SN850X 2TB NVMe", "categoria": "Almacenamiento", "watts": 8, "precio": 160.0 },
+
+    { "id": 27, "nombre": "EVGA 600W 80+ Bronze", "categoria": "Fuente de Poder", "watts": 0, "precio": 60.0 },
+    { "id": 28, "nombre": "Corsair RM750e 80+ Gold", "categoria": "Fuente de Poder", "watts": 0, "precio": 100.0 },
+    { "id": 29, "nombre": "SeaSonic FOCUS GX-850 80+ Gold", "categoria": "Fuente de Poder", "watts": 0, "precio": 130.0 },
+    { "id": 30, "nombre": "Be Quiet! Dark Power 12 1000W 80+ Titanium", "categoria": "Fuente de Poder", "watts": 0, "precio": 280.0 }
+  ]
+}
