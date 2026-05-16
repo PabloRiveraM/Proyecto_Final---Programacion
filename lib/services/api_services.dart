@@ -2,21 +2,19 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import '../models/api_models/item_model.dart'; 
+import '../models/api_models/item_model.dart';
 import '../api_key.dart';
 
 class ApiService {
   // URL de la API de Groq
-    static const String baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
-  
+  static const String baseUrl =
+      'https://api.groq.com/openai/v1/chat/completions';
+
   // API Key de Groq (proyecto en equipo)
   static const String apiKey = groqApiKey;
 
   // Timeout para no quedarnos colgados si Groq no responde
   static const Duration timeout = Duration(seconds: 30);
-
-  // Se elimina el catalogoOficial hardcodeado.
-  // Ahora usaremos assets/inventory.json.
 
   // =========================================================================
   // MÉTODO 1: Obtener piezas del catálogo
@@ -24,8 +22,10 @@ class ApiService {
   static Future<List<ItemModel>> fetchData() async {
     try {
       // 1. Cargar el JSON desde los assets locales
-      final String response = await rootBundle.loadString('assets/inventory.json');
-      
+      final String response = await rootBundle.loadString(
+        'assets/inventory.json',
+      );
+
       // 2. Decodificar el JSON
       final data = await json.decode(response);
       final List<dynamic> results = data['results'];
@@ -34,7 +34,7 @@ class ApiService {
       return results.map((item) => ItemModel.fromJson(item)).toList();
     } catch (e) {
       print('Error al cargar el inventario local: $e');
-      return []; 
+      return [];
     }
   }
 
@@ -48,29 +48,36 @@ class ApiService {
   ) async {
     try {
       // 1. Cargar el inventario local para enviarlo como contexto a la IA
-      final String inventarioString = await rootBundle.loadString('assets/inventory.json');
-      
+      final String inventarioString = await rootBundle.loadString(
+        'assets/inventory.json',
+      );
+
       // 2. Convertir las piezas seleccionadas a texto legible
-      final String listaPiezas = piezasSeleccionadas.isEmpty 
+      final String listaPiezas = piezasSeleccionadas.isEmpty
           ? "(Ninguna pieza seleccionada actualmente)"
           : piezasSeleccionadas
-              .map((p) => '- ID: ${p.id} | ${p.nombre} (${p.categoria}, ${p.watts}W, Q${p.precio})')
-              .join('\n');
+                .map(
+                  (p) =>
+                      '- ID: ${p.id} | ${p.nombre} (${p.categoria}, ${p.watts}W, Q${p.precio})',
+                )
+                .join('\n');
 
-      final response = await http.post(
-        Uri.parse(baseUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
-        },
-        body: jsonEncode({
-          "model": "llama3-8b-8192",
-          "temperature": 0.2, // Un poco de flexibilidad para recomendaciones
-          "response_format": {"type": "json_object"},
-          "messages": [
-            {
-              "role": "system",
-              "content": """
+      final response = await http
+          .post(
+            Uri.parse(baseUrl),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $apiKey',
+            },
+            body: jsonEncode({
+              "model": "llama-3.3-70b-versatile",
+              "temperature": 0.2,
+              "response_format": {"type": "json_object"},
+              "messages": [
+                {
+                  "role": "system",
+                  "content":
+                      """
               Eres un experto en hardware de computadoras. Tu trabajo es analizar 
               la compatibilidad de un conjunto de piezas seleccionadas por el usuario, 
               y SI ES NECESARIO, sugerir piezas de nuestro inventario para completar o mejorar el ensamble.
@@ -107,24 +114,31 @@ class ApiService {
               Si no hay problemas, "problemas" debe ser un arreglo vacío [].
               Asegúrate de que las sugerencias de piezas correspondan EXACTAMENTE a los nombres y especificaciones del inventario.
               NO respondas con texto conversacional. Solo JSON.
-              """
-            },
-            {
-              "role": "user",
-              "content": "Analiza la compatibilidad de estas piezas que tengo seleccionadas:\n$listaPiezas"
-            }
-          ]
-        }),
-      ).timeout(timeout);
+              """,
+                },
+                {
+                  "role": "user",
+                  "content":
+                      "Analiza la compatibilidad de estas piezas que tengo seleccionadas:\n$listaPiezas",
+                },
+              ],
+            }),
+          )
+          .timeout(timeout);
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> decodedData = json.decode(response.body);
-        final String iaContent = decodedData['choices'][0]['message']['content'];
+        final String iaContent =
+            decodedData['choices'][0]['message']['content'];
         final Map<String, dynamic> resultado = json.decode(iaContent);
         return resultado;
       } else {
-        print('Groq respondió con código ${response.statusCode}: ${response.body}');
-        return _errorCompatibilidad('Error del servidor: ${response.statusCode}');
+        print(
+          'Groq respondió con código ${response.statusCode}: ${response.body}',
+        );
+        return _errorCompatibilidad(
+          'Error del servidor: ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('Error en verificación de compatibilidad: $e');
