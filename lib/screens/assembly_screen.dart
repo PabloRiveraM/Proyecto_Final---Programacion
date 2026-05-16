@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../core/app_state.dart';
 import '../models/api_models/item_model.dart';
+import '../models/data_structures/custom_graph.dart';
 import '../services/api_services.dart';
 
 class AssemblyScreen extends StatefulWidget {
@@ -21,7 +22,9 @@ class AssemblyScreen extends StatefulWidget {
 
 class _AssemblyScreenState extends State<AssemblyScreen> {
   final AppState _estado = AppState();
+  final CompatibilityGraph _grafo = CompatibilityGraph();
   bool _cargando = false;
+  List<ConflictoCompatibilidad> _conflictos = [];
 
   @override
   void initState() {
@@ -53,7 +56,20 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     if (elegida == null) return;
 
     _estado.agregarAlEnsamble(elegida);
-    _mostrarSnackbar('${elegida.nombre} agregada al ensamble.');
+    // Agregar al grafo y verificar compatibilidad (Jose - Grafo)
+    _grafo.agregarPieza(elegida);
+    final piezasActuales = _estado.ensamble.toList();
+    setState(() {
+      _conflictos = _grafo.verificarEnsamble(piezasActuales);
+    });
+    if (_conflictos.isNotEmpty) {
+      _mostrarSnackbar(
+          '⚠️ Conflicto: ${_conflictos.first.motivo}',
+          esError: true,
+          duracion: const Duration(seconds: 4));
+    } else {
+      _mostrarSnackbar('${elegida.nombre} agregada al ensamble.');
+    }
   }
 
   // ── Deshacer última acción ────────────────────────────────────────────────
@@ -62,6 +78,11 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     if (pieza == null) {
       _mostrarSnackbar('No hay acciones para deshacer.', esError: true);
     } else {
+      // Re-verificar compatibilidad sin la pieza quitada
+      final piezasActuales = _estado.ensamble.toList();
+      setState(() {
+        _conflictos = _grafo.verificarEnsamble(piezasActuales);
+      });
       _mostrarSnackbar('Se quitó: ${pieza.nombre}');
     }
   }
@@ -141,7 +162,9 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     );
   }
 
-  void _mostrarSnackbar(String mensaje, {bool esError = false}) {
+  void _mostrarSnackbar(String mensaje,
+      {bool esError = false,
+      Duration duracion = const Duration(seconds: 2)}) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -151,7 +174,7 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
         behavior: SnackBarBehavior.floating,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 2),
+        duration: duracion,
       ),
     );
   }
@@ -183,6 +206,7 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
       body: Column(
         children: [
           _buildResumen(piezas.length),
+          if (_conflictos.isNotEmpty) _buildAlertaConflictos(),
           Expanded(
             child: piezas.isEmpty
                 ? _buildEstadoVacio()
@@ -225,6 +249,42 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
           const SizedBox(width: 12),
           _Stat(Icons.attach_money_rounded,
               'Q${_estado.totalPrecioEnsamble.toStringAsFixed(0)}', 'Total'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAlertaConflictos() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 20),
+              SizedBox(width: 8),
+              Text('Conflictos de Compatibilidad',
+                  style: TextStyle(
+                      color: AppColors.error,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ..._conflictos.map((c) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text('• ${c.motivo}',
+                    style: TextStyle(
+                        color: AppColors.error.withValues(alpha: 0.9),
+                        fontSize: 12)),
+              )),
         ],
       ),
     );
