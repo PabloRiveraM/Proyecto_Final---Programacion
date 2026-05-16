@@ -253,9 +253,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        childAspectRatio: 0.85,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
       ),
       itemCount: piezas.length,
       itemBuilder: (_, i) => _buildTarjetaPieza(piezas[i]),
@@ -276,7 +276,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
           // Ícono + categoría
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: const BoxDecoration(
               color: AppColors.primary,
               borderRadius:
@@ -286,13 +286,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(_iconoCategoria(pieza.categoria),
-                    color: AppColors.textOnDark, size: 28),
-                const SizedBox(height: 8),
+                    color: AppColors.textOnDark, size: 22),
+                const SizedBox(height: 4),
                 Text(
                   pieza.categoria,
                   style: TextStyle(
-                    color: AppColors.textOnDark.withValues(alpha: 0.7),
-                    fontSize: 10,
+                    color: AppColors.textOnDark.withValues(alpha: 0.8),
+                    fontSize: 9,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
@@ -303,7 +303,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
           // Info
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -314,20 +314,20 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 11,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text('${pieza.watts}W',
                     style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 11)),
-                const SizedBox(height: 6),
+                        color: AppColors.textSecondary, fontSize: 10)),
+                const SizedBox(height: 4),
                 Text(
                   'Q${pieza.precio.toStringAsFixed(0)}',
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 14,
                   ),
                 ),
               ],
@@ -338,7 +338,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
           // Botones
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+            padding: const EdgeInsets.fromLTRB(6, 0, 6, 6),
             child: Row(
               children: [
                 Expanded(
@@ -348,7 +348,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     onTap: () => _agregarAlEnsamble(pieza),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 4),
                 Expanded(
                   child: _BotonAccion(
                     icono: Icons.favorite_rounded,
@@ -406,11 +406,11 @@ class _BotonAccion extends StatelessWidget {
       child: Tooltip(
         message: tooltip,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
             color:
                 secundario ? AppColors.surface : AppColors.primary,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
                 color: secundario
                     ? AppColors.border
@@ -418,7 +418,7 @@ class _BotonAccion extends StatelessWidget {
           ),
           child: Icon(
             icono,
-            size: 18,
+            size: 16,
             color: secundario
                 ? AppColors.secondary
                 : AppColors.textOnDark,

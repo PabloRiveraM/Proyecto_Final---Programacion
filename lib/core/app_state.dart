@@ -45,6 +45,11 @@ class AppState {
     notificar();
   }
 
+  void eliminarDelEnsamble(ItemModel pieza) {
+    ensamble.delete(pieza);
+    notificar();
+  }
+
   ItemModel? deshacer() {
     final pieza = historial.pop();
     if (pieza != null) {

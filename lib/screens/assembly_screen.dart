@@ -148,75 +148,116 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
 
   // ── Diálogo selector de pieza ─────────────────────────────────────────────
   Future<ItemModel?> _mostrarDialogoEleccion(List<ItemModel> piezas) {
+    String filtroCategoria = 'Todas';
+    final categorias = ['Todas', ...piezas.map((p) => p.categoria).toSet().toList()];
+
     return showModalBottomSheet<ItemModel>(
       context: context,
       backgroundColor: AppColors.background,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 40, height: 4,
-            decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2)),
-          ),
-          const SizedBox(height: 16),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Elige una pieza para agregar',
-                  style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold)),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Flexible(
-            child: ListView.separated(
-              shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemCount: piezas.length,
-              separatorBuilder: (_, __) =>
-                  const Divider(color: AppColors.divider, height: 1),
-              itemBuilder: (ctx, i) {
-                final pieza = piezas[i];
-                return ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  leading: Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.memory_rounded,
-                        color: AppColors.secondary, size: 22),
+      builder: (ctx) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter setModalState) {
+          final piezasFiltradas = filtroCategoria == 'Todas'
+              ? piezas
+              : piezas.where((p) => p.categoria == filtroCategoria).toList();
+
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.9,
+            builder: (_, controller) => Column(
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2)),
+                ),
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Elige una pieza',
+                        style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold)),
                   ),
-                  title: Text(pieza.nombre,
-                      style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14)),
-                  subtitle: Text('${pieza.categoria} · ${pieza.watts}W',
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12)),
-                  trailing: Text('Q${pieza.precio.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14)),
-                  onTap: () => Navigator.pop(ctx, pieza),
-                );
-              },
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 36,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: categorias.length,
+                    itemBuilder: (context, i) {
+                      final cat = categorias[i];
+                      final isSelected = cat == filtroCategoria;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(cat, style: TextStyle(fontSize: 12, color: isSelected ? AppColors.textOnDark : AppColors.textPrimary)),
+                          selected: isSelected,
+                          selectedColor: AppColors.primary,
+                          backgroundColor: AppColors.surface,
+                          onSelected: (selected) {
+                            if (selected) setModalState(() => filtroCategoria = cat);
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView.separated(
+                    controller: controller,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    itemCount: piezasFiltradas.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(color: AppColors.divider, height: 1),
+                    itemBuilder: (ctx, i) {
+                      final pieza = piezasFiltradas[i];
+                      return ListTile(
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                        leading: Container(
+                          width: 32, height: 32,
+                          decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.memory_rounded,
+                              color: AppColors.secondary, size: 18),
+                        ),
+                        title: Text(pieza.nombre,
+                            style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        subtitle: Text('${pieza.categoria} · ${pieza.watts}W',
+                            style: const TextStyle(
+                                color: AppColors.textSecondary, fontSize: 11)),
+                        trailing: Text('Q${pieza.precio.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13)),
+                        onTap: () => Navigator.pop(ctx, pieza),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 12),
-        ],
+          );
+        },
       ),
     );
   }
@@ -383,28 +424,28 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
 
   Widget _buildTarjetaPieza(ItemModel pieza, int index) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
           Container(
-            width: 36, height: 36,
+            width: 28, height: 28,
             decoration: BoxDecoration(
                 color: AppColors.primary,
-                borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(8)),
             child: Center(
               child: Text('${index + 1}',
                   style: const TextStyle(
                       color: AppColors.textOnDark,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14)),
+                      fontSize: 12)),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,18 +454,33 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
                     style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w600,
-                        fontSize: 14)),
+                        fontSize: 13),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
                 Text('${pieza.categoria} · ${pieza.watts}W',
                     style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12)),
+                        color: AppColors.textSecondary, fontSize: 11)),
               ],
             ),
           ),
-          Text('Q${pieza.precio.toStringAsFixed(2)}',
+          Text('Q${pieza.precio.toStringAsFixed(0)}',
               style: const TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.bold,
-                  fontSize: 15)),
+                  fontSize: 13)),
+          const SizedBox(width: 4),
+          IconButton(
+            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: () {
+              _estado.eliminarDelEnsamble(pieza);
+              final piezasActuales = _estado.ensamble.toList();
+              setState(() {
+                _conflictos = _grafo.verificarEnsamble(piezasActuales);
+              });
+              _mostrarSnackbar('${pieza.nombre} eliminado.');
+            },
+          ),
         ],
       ),
     );
