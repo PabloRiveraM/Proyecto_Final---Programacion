@@ -24,6 +24,7 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
   final AppState _estado = AppState();
   final CompatibilityGraph _grafo = CompatibilityGraph();
   bool _cargando = false;
+  bool _consultandoIA = false;
   List<ConflictoCompatibilidad> _conflictos = [];
 
   @override
@@ -85,6 +86,64 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
       });
       _mostrarSnackbar('Se quitó: ${pieza.nombre}');
     }
+  }
+
+  // ── Consultar IA para Recomendaciones ─────────────────────────────────────
+  Future<void> _consultarIA() async {
+    if (_estado.ensamble.isEmpty) {
+      _mostrarSnackbar('Agrega piezas al ensamble primero.', esError: true);
+      return;
+    }
+    setState(() => _consultandoIA = true);
+    
+    final resultado = await ApiService.checkCompatibility(_estado.ensamble.toList());
+    
+    if (!mounted) return;
+    setState(() => _consultandoIA = false);
+
+    _mostrarResultadosIA(resultado);
+  }
+
+  void _mostrarResultadosIA(Map<String, dynamic> res) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.background,
+        title: Row(
+          children: [
+            Icon(res['compatible'] ? Icons.check_circle_rounded : Icons.warning_rounded, 
+                 color: res['compatible'] ? AppColors.success : AppColors.error),
+            const SizedBox(width: 8),
+            const Expanded(child: Text('Análisis IA', style: TextStyle(color: AppColors.textPrimary, fontSize: 18))),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(res['resumen'] ?? '', style: const TextStyle(color: AppColors.textPrimary)),
+              const SizedBox(height: 16),
+              if (res['problemas'] != null && (res['problemas'] as List).isNotEmpty) ...[
+                const Text('Problemas:', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                ...((res['problemas'] as List).map((p) => Text('• $p', style: const TextStyle(color: AppColors.textSecondary)))),
+                const SizedBox(height: 16),
+              ],
+              if (res['sugerencias'] != null && (res['sugerencias'] as List).isNotEmpty) ...[
+                const Text('Sugerencias del Inventario:', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                ...((res['sugerencias'] as List).map((s) => Text('• $s', style: const TextStyle(color: AppColors.textSecondary)))),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Entendido', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── Diálogo selector de pieza ─────────────────────────────────────────────
@@ -195,6 +254,17 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
         title: const Text('Ensamble Actual',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         actions: [
+          if (_consultandoIA)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppColors.textOnDark, strokeWidth: 2)),
+            )
+          else
+            IconButton(
+              tooltip: 'Recomendación IA',
+              icon: const Icon(Icons.psychology_rounded, color: AppColors.textOnDark),
+              onPressed: _consultarIA,
+            ),
           IconButton(
             tooltip: 'Deshacer',
             icon: Icon(Icons.undo_rounded,
