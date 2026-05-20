@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
-import '../core/app_state.dart';
 import 'assembly_screen.dart';
 import 'catalog_screen.dart';
 import 'wishlist_screen.dart';
@@ -16,7 +15,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  final _estado = AppState();
 
   // Las 5 pantallas del proyecto
   final List<Widget> _screens = const [
