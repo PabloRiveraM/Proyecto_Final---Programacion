@@ -105,6 +105,8 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
   }
 
   void _mostrarResultadosIA(Map<String, dynamic> res) {
+    final idsSugeridos = res['idsSugeridos'] as List<dynamic>? ?? [];
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -139,8 +141,32 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Entendido', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            child: const Text('Cerrar', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
           ),
+          if (idsSugeridos.isNotEmpty)
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.textOnDark,
+              ),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                setState(() => _cargando = true);
+                final catalogoCompleto = await ApiService.fetchData();
+                for (var id in idsSugeridos) {
+                  final pieza = catalogoCompleto.where((p) => p.id == id).firstOrNull;
+                  if (pieza != null) {
+                    _estado.agregarAlEnsamble(pieza);
+                  }
+                }
+                setState(() {
+                  _cargando = false;
+                  _conflictos = _grafo.verificarEnsamble(_estado.ensamble.toList());
+                });
+                _mostrarSnackbar('Sugerencias añadidas al ensamble.');
+              },
+              child: const Text('Añadir Sugerencias', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
         ],
       ),
     );

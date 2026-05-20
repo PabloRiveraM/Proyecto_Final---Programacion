@@ -37,6 +37,44 @@ class AppState {
     }
   }
 
+  // === Autenticación (Mock Local) ===
+  String? currentUser;
+  final Map<String, String> _usuariosRegistrados = {
+    'admin@admin.com': 'admin123' // Usuario por defecto
+  };
+
+  bool get isLogged => currentUser != null;
+
+  bool login(String email, String password) {
+    if (_usuariosRegistrados.containsKey(email) && _usuariosRegistrados[email] == password) {
+      currentUser = email;
+      notificar();
+      return true;
+    }
+    return false;
+  }
+
+  bool register(String email, String password) {
+    if (_usuariosRegistrados.containsKey(email)) {
+      return false; // Ya existe
+    }
+    _usuariosRegistrados[email] = password;
+    currentUser = email;
+    notificar();
+    return true;
+  }
+
+  void logout() {
+    currentUser = null;
+    // Limpiar estado al cerrar sesión
+    while (ensamble.head != null) {
+      ensamble.delete(ensamble.head!.data);
+    }
+    while (historial.pop() != null) {}
+    while (wishlist.dequeue() != null) {}
+    notificar();
+  }
+
   // === Operaciones del Ensamble (Marly) ===
 
   void agregarAlEnsamble(ItemModel pieza) {
