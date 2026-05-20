@@ -6,7 +6,6 @@ import 'catalog_screen.dart';
 import 'wishlist_screen.dart';
 import 'search_screen.dart';
 import 'analysis_screen.dart';
-import 'login_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -57,14 +56,6 @@ class _MainScreenState extends State<MainScreen> {
     ),
   ];
 
-  void _logout() {
-    _estado.logout();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,25 +66,9 @@ class _MainScreenState extends State<MainScreen> {
         elevation: 0,
       ),
       // Cuerpo: pantalla activa sin re-crear el árbol de widgets
-      body: Stack(
-        children: [
-          IndexedStack(
-            index: _currentIndex,
-            children: _screens,
-          ),
-          Positioned(
-            top: 40,
-            right: 16,
-            child: SafeArea(
-              child: FloatingActionButton.small(
-                heroTag: 'logoutBtn',
-                backgroundColor: AppColors.error,
-                onPressed: _logout,
-                child: const Icon(Icons.logout_rounded, color: AppColors.textOnDark),
-              ),
-            ),
-          )
-        ],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
       ),
 
       // Barra de navegación inferior

@@ -131,20 +131,38 @@ class CompatibilityGraph {
     final conectores = <String>{};
 
     if (cat == 'procesador') {
-      if (nombre.contains('ryzen') || nombre.contains('amd')) {
+      // AMD Ryzen
+      if (nombre.contains('ryzen') || nombre.contains('amd') ||
+          nombre.contains('5600') || nombre.contains('5800') ||
+          nombre.contains('5900') || nombre.contains('7600') ||
+          nombre.contains('7800') || nombre.contains('7900')) {
         conectores.add('AM4');
-      } else if (nombre.contains('intel') || nombre.contains('core i')) {
+      }
+      // Intel Core
+      else if (nombre.contains('intel') || nombre.contains('core i') ||
+          nombre.contains('i3-') || nombre.contains('i5-') ||
+          nombre.contains('i7-') || nombre.contains('i9-')) {
         conectores.add('LGA1700');
       }
     }
 
     if (cat == 'motherboard') {
+      // Boards AM4: B450, B550, X570, A520
       if (nombre.contains('b550') || nombre.contains('x570') ||
-          nombre.contains('am4')) {
+          nombre.contains('b450') || nombre.contains('a520') ||
+          nombre.contains('rog strix b5') || nombre.contains('am4')) {
         conectores.addAll(['AM4', 'DDR4']);
-      } else if (nombre.contains('b660') || nombre.contains('lga1700') ||
-          nombre.contains('z690')) {
+      }
+      // Boards Intel LGA1700: B660, Z690, Z790, H670
+      else if (nombre.contains('b660') || nombre.contains('z690') ||
+          nombre.contains('z790') || nombre.contains('h670') ||
+          nombre.contains('lga1700')) {
         conectores.addAll(['LGA1700', 'DDR5']);
+      }
+      // Boards AMD AM5: B650, X670
+      else if (nombre.contains('b650') || nombre.contains('x670') ||
+          nombre.contains('am5')) {
+        conectores.addAll(['AM5', 'DDR5']);
       }
     }
 
@@ -153,7 +171,7 @@ class CompatibilityGraph {
       if (nombre.contains('ddr5')) conectores.add('DDR5');
     }
 
-    if (cat == 'tarjeta grafica') {
+    if (cat == 'tarjeta grafica' || cat == 'tarjeta gráfica') {
       conectores.add('PCIe');
     }
 
@@ -169,10 +187,14 @@ class CompatibilityGraph {
   }
 
   String _socketDe(ItemModel pieza) {
+    // Primero revisar los nodos del grafo para la pieza
+    if (_nodos['AM4']?.any((p) => p.id == pieza.id) ?? false) return 'AM4';
+    if (_nodos['LGA1700']?.any((p) => p.id == pieza.id) ?? false) return 'LGA1700';
+    if (_nodos['AM5']?.any((p) => p.id == pieza.id) ?? false) return 'AM5';
+    // Fallback por nombre
     final nombre = pieza.nombre.toLowerCase();
-    if (nombre.contains('ryzen') || nombre.contains('b550')) return 'AM4';
-    if (nombre.contains('intel') || nombre.contains('i5-12') ||
-        nombre.contains('b660')) return 'LGA1700';
+    if (nombre.contains('ryzen') || nombre.contains('b550') || nombre.contains('b450') || nombre.contains('x570')) return 'AM4';
+    if (nombre.contains('intel') || nombre.contains('i5-12') || nombre.contains('b660') || nombre.contains('z690')) return 'LGA1700';
     return 'Desconocido';
   }
 
