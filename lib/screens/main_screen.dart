@@ -6,7 +6,6 @@ import 'catalog_screen.dart';
 import 'wishlist_screen.dart';
 import 'search_screen.dart';
 import 'analysis_screen.dart';
-import 'login_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -57,14 +56,6 @@ class _MainScreenState extends State<MainScreen> {
     ),
   ];
 
-  void _logout() {
-    _estado.logout();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
