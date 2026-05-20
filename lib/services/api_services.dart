@@ -98,7 +98,7 @@ class ApiService {
               INSTRUCCIÓN DE RECOMENDACIÓN:
               Si a la lista de piezas del usuario le faltan categorías para ser una PC completa,
               o hay una incompatibilidad clara que requiera cambiar una pieza, RECOMIENDA las piezas necesarias
-              **sacadas estrictamente del INVENTARIO DISPONIBLE proporcionado**. Muestra la sugerencia en formato de texto claro.
+              **sacadas estrictamente del INVENTARIO DISPONIBLE proporcionado**. Muestra la sugerencia en formato de texto claro y proporciona el arreglo de IDs sugeridos.
 
               Responde SOLO con un JSON con este formato exacto:
               {
@@ -108,10 +108,11 @@ class ApiService {
                 "precioTotal": numero,
                 "problemas": ["lista de problemas encontrados o piezas incompatibles"],
                 "sugerencias": ["lista de recomendaciones detalladas de piezas faltantes o cambios sugeridos (incluyendo el ID de la pieza del inventario)"],
+                "idsSugeridos": [1, 5, 23],
                 "resumen": "Un resumen breve del análisis"
               }
               
-              Si no hay problemas, "problemas" debe ser un arreglo vacío [].
+              Si no hay problemas, "problemas" e "idsSugeridos" deben ser arreglos vacíos [].
               Asegúrate de que las sugerencias de piezas correspondan EXACTAMENTE a los nombres y especificaciones del inventario.
               NO respondas con texto conversacional. Solo JSON.
               """,
@@ -155,6 +156,7 @@ class ApiService {
       'precioTotal': 0,
       'problemas': [mensaje],
       'sugerencias': [],
+      'idsSugeridos': [],
       'resumen': 'Error al analizar compatibilidad.',
     };
   }
