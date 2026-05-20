@@ -251,8 +251,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
     }
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 180,
         childAspectRatio: 0.85,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
