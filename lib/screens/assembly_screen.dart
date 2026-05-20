@@ -12,6 +12,7 @@ import '../core/app_state.dart';
 import '../models/api_models/item_model.dart';
 import '../models/data_structures/custom_graph.dart';
 import '../services/api_services.dart';
+import 'login_screen.dart';
 
 class AssemblyScreen extends StatefulWidget {
   const AssemblyScreen({super.key});
@@ -154,8 +155,13 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
                 setState(() => _cargando = true);
                 final catalogoCompleto = await ApiService.fetchData();
                 for (var id in idsSugeridos) {
-                  final pieza = catalogoCompleto.where((p) => p.id == id).firstOrNull;
+                  // El id en el JSON puede venir como int o como String
+                  final idInt = id is int ? id : int.tryParse(id.toString());
+                  final pieza = catalogoCompleto.where((p) => p.id == idInt).firstOrNull;
                   if (pieza != null) {
+                    // IMPORTANTE: primero registrar en el grafo para que la
+                    // verificación de compatibilidad funcione correctamente
+                    _grafo.agregarPieza(pieza);
                     _estado.agregarAlEnsamble(pieza);
                   }
                 }
@@ -335,8 +341,22 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
           IconButton(
             tooltip: 'Deshacer',
             icon: Icon(Icons.undo_rounded,
-                color: AppColors.textOnDark.withValues(alpha: 0.3)),
+                color: hayHistorial
+                    ? AppColors.textOnDark
+                    : AppColors.textOnDark.withValues(alpha: 0.3)),
             onPressed: hayHistorial ? _deshacer : null,
+          ),
+          IconButton(
+            tooltip: 'Cerrar sesión',
+            icon: const Icon(Icons.logout_rounded, color: AppColors.textOnDark),
+            onPressed: () {
+              AppState().logout();
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
+            },
           ),
         ],
       ),
