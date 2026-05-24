@@ -27,11 +27,18 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
   bool _cargando = false;
   bool _consultandoIA = false;
   List<ConflictoCompatibilidad> _conflictos = [];
+  bool _dialogoMostrado = false;
 
   @override
   void initState() {
     super.initState();
     _estado.addListener(_actualizar);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_estado.ensamble.isEmpty && !_dialogoMostrado) {
+        _dialogoMostrado = true;
+        _mostrarDialogoAutoArmado();
+      }
+    });
   }
 
   @override
@@ -41,6 +48,76 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
   }
 
   void _actualizar() => setState(() {});
+
+  Future<void> _mostrarDialogoAutoArmado() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.background,
+        title: const Text('¿Para qué usarás tu PC?', style: TextStyle(color: AppColors.textPrimary)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.sports_esports_rounded, color: AppColors.primary),
+              title: const Text('PC Gamer', style: TextStyle(color: AppColors.textPrimary)),
+              subtitle: const Text('Alto rendimiento para juegos', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              onTap: () => _autoArmar(ctx, 'gamer'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.work_rounded, color: AppColors.primary),
+              title: const Text('PC Oficina', style: TextStyle(color: AppColors.textPrimary)),
+              subtitle: const Text('Tareas básicas y ofimática', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              onTap: () => _autoArmar(ctx, 'oficina'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.build_rounded, color: AppColors.primary),
+              title: const Text('Armar Manualmente', style: TextStyle(color: AppColors.textPrimary)),
+              subtitle: const Text('Elegir pieza por pieza', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _autoArmar(BuildContext ctx, String perfil) async {
+    Navigator.pop(ctx);
+    setState(() => _cargando = true);
+    final catalogoCompleto = await ApiService.fetchData();
+    
+    ItemModel? cpu;
+    ItemModel? mb;
+    ItemModel? ram;
+    ItemModel? psu;
+    
+    if (perfil == 'gamer') {
+      cpu = catalogoCompleto.where((p) => p.nombre.contains('Ryzen 5') || p.nombre.contains('i5-12600')).firstOrNull;
+      mb = catalogoCompleto.where((p) => p.categoria == 'Motherboard' && p.precio > 800).firstOrNull;
+      ram = catalogoCompleto.where((p) => p.categoria == 'RAM' && p.nombre.contains('16GB')).firstOrNull;
+      psu = catalogoCompleto.where((p) => p.categoria == 'Fuente de Poder' && p.watts >= 600).firstOrNull;
+    } else if (perfil == 'oficina') {
+      cpu = catalogoCompleto.where((p) => p.categoria == 'Procesador' && p.precio < 1000).firstOrNull;
+      mb = catalogoCompleto.where((p) => p.categoria == 'Motherboard' && p.precio < 700).firstOrNull;
+      ram = catalogoCompleto.where((p) => p.categoria == 'RAM' && p.nombre.contains('8GB')).firstOrNull;
+      psu = catalogoCompleto.where((p) => p.categoria == 'Fuente de Poder' && p.watts <= 500).firstOrNull;
+    }
+
+    final piezasAuto = [cpu, mb, ram, psu].whereType<ItemModel>().toList();
+    
+    for (var p in piezasAuto) {
+      _grafo.agregarPieza(p);
+      _estado.agregarAlEnsamble(p);
+    }
+    
+    setState(() {
+      _cargando = false;
+      _conflictos = _grafo.verificarEnsamble(_estado.ensamble.toList());
+    });
+    _mostrarSnackbar('Perfil $perfil cargado automáticamente.');
+  }
 
   // ── Agregar pieza desde la IA ─────────────────────────────────────────────
   Future<void> _agregarPiezaDesdeIA() async {
