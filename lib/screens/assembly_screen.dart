@@ -469,19 +469,21 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
   }
 
   Widget _buildTarjetaPieza(ItemModel pieza, int index) {
+    final tieneConflicto = _conflictos.any((c) => c.piezaA.id == pieza.id || c.piezaB.id == pieza.id);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: tieneConflicto ? AppColors.error.withValues(alpha: 0.1) : AppColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: tieneConflicto ? AppColors.error : AppColors.border),
       ),
       child: Row(
         children: [
           Container(
             width: 28, height: 28,
             decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: tieneConflicto ? AppColors.error : AppColors.primary,
                 borderRadius: BorderRadius.circular(8)),
             child: Center(
               child: Text('${index + 1}',
