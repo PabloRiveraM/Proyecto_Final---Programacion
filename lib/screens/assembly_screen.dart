@@ -6,12 +6,17 @@
 //   - Botón Deshacer: AppState.deshacer() → pop() pila + delete() lista
 //   - Botón Agregar: llama a ApiService.fetchData() → elegir pieza → AppState.agregarAlEnsamble()
 
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import '../core/app_colors.dart';
 import '../core/app_state.dart';
 import '../models/api_models/item_model.dart';
 import '../models/data_structures/custom_graph.dart';
 import '../services/api_services.dart';
+import '../utils/pdf_generator.dart';
 import 'login_screen.dart';
 
 class AssemblyScreen extends StatefulWidget {
@@ -28,6 +33,8 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
   bool _consultandoIA = false;
   List<ConflictoCompatibilidad> _conflictos = [];
 
+  final ScreenshotController _screenshotController = ScreenshotController();
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +48,64 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
   }
 
   void _actualizar() => setState(() {});
+
+  void _mostrarMenuExportar() {
+    if (_estado.ensamble.isEmpty) {
+      _mostrarSnackbar('Agrega piezas al ensamble para poder exportar.', esError: true);
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.background,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('Exportar Ensamble', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.image_rounded, color: AppColors.primary),
+              title: const Text('Compartir como Imagen', style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _exportarImagen();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf_rounded, color: AppColors.error),
+              title: const Text('Exportar como PDF', style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () {
+                Navigator.pop(ctx);
+                PdfGenerator.exportAndSharePdf(_estado.ensamble.toList(), _estado.totalPrecioEnsamble, _estado.totalWattsEnsamble.toInt());
+              },
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportarImagen() async {
+    setState(() => _cargando = true);
+    try {
+      final image = await _screenshotController.capture(delay: const Duration(milliseconds: 100));
+      if (image == null) throw Exception('No se pudo capturar la imagen');
+      
+      final directory = await getTemporaryDirectory();
+      final imagePath = await File('${directory.path}/ensamble.png').create();
+      await imagePath.writeAsBytes(image);
+      
+      await Share.shareXFiles([XFile(imagePath.path)], text: '¡Mira mi ensamble de PC!');
+    } catch (e) {
+      _mostrarSnackbar('Error al exportar: $e', esError: true);
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
+  }
 
   // ── Agregar pieza desde la IA ─────────────────────────────────────────────
   Future<void> _agregarPiezaDesdeIA() async {
@@ -347,6 +412,11 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
             onPressed: hayHistorial ? _deshacer : null,
           ),
           IconButton(
+            tooltip: 'Exportar Ensamble',
+            icon: const Icon(Icons.ios_share_rounded, color: AppColors.textOnDark),
+            onPressed: _mostrarMenuExportar,
+          ),
+          IconButton(
             tooltip: 'Cerrar sesión',
             icon: const Icon(Icons.logout_rounded, color: AppColors.textOnDark),
             onPressed: () {
@@ -360,10 +430,14 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildResumen(piezas.length),
-          if (_conflictos.isNotEmpty) _buildAlertaConflictos(),
+      body: Screenshot(
+        controller: _screenshotController,
+        child: Container(
+          color: AppColors.background,
+          child: Column(
+            children: [
+              _buildResumen(piezas.length),
+              if (_conflictos.isNotEmpty) _buildAlertaConflictos(),
           Expanded(
             child: piezas.isEmpty
                 ? _buildEstadoVacio()
@@ -374,7 +448,9 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
                     itemBuilder: (_, i) => _buildTarjetaPieza(piezas[i], i),
                   ),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _cargando ? null : _agregarPiezaDesdeIA,
