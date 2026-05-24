@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/app_colors.dart';
 import '../core/app_state.dart';
 import '../models/api_models/item_model.dart';
@@ -186,6 +187,64 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     } finally {
       if (mounted) setState(() => _cargando = false);
     }
+  }
+
+  Future<void> _consultarBotAmazon(ItemModel pieza) async {
+    setState(() => _cargando = true);
+    final resultados = await ApiService.searchAmazon(pieza.nombre);
+    if (!mounted) return;
+    setState(() => _cargando = false);
+
+    if (resultados.isEmpty) {
+      _mostrarSnackbar('No se pudo obtener resultados. Asegúrate de tener el bot Python corriendo en la IP correcta.', esError: true, duracion: const Duration(seconds: 4));
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.background,
+        title: Row(
+          children: const [
+            Icon(Icons.shopping_cart_rounded, color: AppColors.primary),
+            SizedBox(width: 8),
+            Text('Precios en Amazon', style: TextStyle(color: AppColors.textPrimary, fontSize: 18)),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: resultados.length,
+            itemBuilder: (_, i) {
+              final res = resultados[i];
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(res['nombre'], style: const TextStyle(color: AppColors.textPrimary, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+                subtitle: Text(res['precio'], style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 14)),
+                trailing: IconButton(
+                  icon: const Icon(Icons.open_in_browser_rounded, color: AppColors.primary),
+                  onPressed: () async {
+                    if (res['enlace'] != null && res['enlace'].toString().isNotEmpty) {
+                      final uri = Uri.parse(res['enlace']);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    }
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cerrar', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── Funciones Generales ───────────────────────────────────────────────────
@@ -664,7 +723,14 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,
                     fontSize: 13)),
-            const SizedBox(width: 4),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.textSecondary, size: 20),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () => _consultarBotAmazon(pieza),
+            ),
+            const SizedBox(width: 12),
             IconButton(
               icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
               padding: EdgeInsets.zero,

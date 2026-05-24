@@ -160,4 +160,26 @@ class ApiService {
       'resumen': 'Error al analizar compatibilidad.',
     };
   }
+
+  // =========================================================================
+  // MÉTODO 3: Consultar precios en Amazon (Python Bot)
+  // =========================================================================
+  static Future<List<dynamic>> searchAmazon(String query) async {
+    // IMPORTANTE: Cambiar esta IP por la IP local de la computadora donde corre el bot
+    const String ipBot = '192.168.1.5'; // <-- CONFIGURA TU IP AQUÍ
+    final url = Uri.parse('http://$ipBot:5000/search?q=${Uri.encodeComponent(query)}');
+
+    try {
+      final response = await http.get(url).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as List<dynamic>;
+      } else {
+        print('Error del bot de Amazon: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('No se pudo conectar con el bot de Amazon: $e');
+      return [];
+    }
+  }
 }
