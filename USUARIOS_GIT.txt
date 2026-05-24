@@ -1,0 +1,51 @@
+# Guía: Cambiar de usuario de GitHub en una sola computadora
+
+El repositorio es: PabloRiveraM/Proyecto_Final---Programacion
+
+Cuando alguien va a trabajar, ejecuta los 3 comandos de su sección.
+Luego trabaja normalmente (git add, git commit, git push).
+
+===========================================================================
+ PABLO (Autor principal)
+===========================================================================
+git remote set-url origin git@github-pablo:PabloRiveraM/Proyecto_Final---Programacion.git
+git config user.name "PabloRiveraM"
+git config user.email "priverar2@miumg.edu.gt"
+
+===========================================================================
+ MARLY
+===========================================================================
+git remote set-url origin git@github-marly:PabloRiveraM/Proyecto_Final---Programacion.git
+git config user.name "MarlyRamirez"
+git config user.email "mramireze9@miumg.edu.gt"
+
+===========================================================================
+ DIEGO
+===========================================================================
+git remote set-url origin git@github-diego:PabloRiveraM/Proyecto_Final---Programacion.git
+git config user.name "Apioide"
+git config user.email "diegoandreguerragarza@gmail.com"
+
+===========================================================================
+ JOSE
+===========================================================================
+git remote set-url origin git@github-jose:PabloRiveraM/Proyecto_Final---Programacion.git
+git config user.name "8jose-gt"
+git config user.email "jguerrat1@miumg.edu.gt"
+
+===========================================================================
+ VERIFICAR quien esta activo antes de hacer commit
+===========================================================================
+git remote -v
+git config user.name
+git config user.email
+
+===========================================================================
+ FLUJO COMPLETO de trabajo
+===========================================================================
+1. Ejecutar los 3 comandos de tu seccion (arriba)
+2. Verificar con: git remote -v  y  git config user.name
+3. Hacer tus cambios en el codigo
+4. git add .
+5. git commit -m "descripcion del cambio"
+6. git push origin main   (o el branch que corresponda)

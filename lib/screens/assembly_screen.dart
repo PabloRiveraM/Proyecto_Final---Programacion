@@ -1,17 +1,25 @@
 // lib/screens/assembly_screen.dart
-// Autor: Marly Ramírez — actualizado para usar AppState compartido
+// Autor: Equipo Completo (Pablo, Marly, Diego, Jose)
 //
 // Pantalla de Ensamble Actual:
 //   - Lee Lista Enlazada y Pila desde AppState (singleton)
-//   - Botón Deshacer: AppState.deshacer() → pop() pila + delete() lista
-//   - Botón Agregar: llama a ApiService.fetchData() → elegir pieza → AppState.agregarAlEnsamble()
+//   - Botón Deshacer: AppState.deshacer()
+//   - Resaltado rojo (Jose)
+//   - Swipe to delete (Marly)
+//   - Auto-armado (Diego)
+//   - Exportación Imagen/PDF (Pablo)
 
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import '../core/app_colors.dart';
 import '../core/app_state.dart';
 import '../models/api_models/item_model.dart';
 import '../models/data_structures/custom_graph.dart';
 import '../services/api_services.dart';
+import '../utils/pdf_generator.dart';
 import 'login_screen.dart';
 
 class AssemblyScreen extends StatefulWidget {
@@ -27,11 +35,19 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
   bool _cargando = false;
   bool _consultandoIA = false;
   List<ConflictoCompatibilidad> _conflictos = [];
+  bool _dialogoMostrado = false;
+  final ScreenshotController _screenshotController = ScreenshotController();
 
   @override
   void initState() {
     super.initState();
     _estado.addListener(_actualizar);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_estado.ensamble.isEmpty && !_dialogoMostrado) {
+        _dialogoMostrado = true;
+        _mostrarDialogoAutoArmado();
+      }
+    });
   }
 
   @override
@@ -42,7 +58,137 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
 
   void _actualizar() => setState(() {});
 
-  // ── Agregar pieza desde la IA ─────────────────────────────────────────────
+  // ── Auto-Armado (Diego) ───────────────────────────────────────────────────
+  Future<void> _mostrarDialogoAutoArmado() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.background,
+        title: const Text('¿Para qué usarás tu PC?', style: TextStyle(color: AppColors.textPrimary)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.sports_esports_rounded, color: AppColors.primary),
+              title: const Text('PC Gamer', style: TextStyle(color: AppColors.textPrimary)),
+              subtitle: const Text('Alto rendimiento para juegos', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              onTap: () => _autoArmar(ctx, 'gamer'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.work_rounded, color: AppColors.primary),
+              title: const Text('PC Oficina', style: TextStyle(color: AppColors.textPrimary)),
+              subtitle: const Text('Tareas básicas y ofimática', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              onTap: () => _autoArmar(ctx, 'oficina'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.build_rounded, color: AppColors.primary),
+              title: const Text('Armar Manualmente', style: TextStyle(color: AppColors.textPrimary)),
+              subtitle: const Text('Elegir pieza por pieza', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _autoArmar(BuildContext ctx, String perfil) async {
+    Navigator.pop(ctx);
+    setState(() => _cargando = true);
+    final catalogoCompleto = await ApiService.fetchData();
+    
+    ItemModel? cpu;
+    ItemModel? mb;
+    ItemModel? ram;
+    ItemModel? psu;
+    
+    if (perfil == 'gamer') {
+      cpu = catalogoCompleto.where((p) => p.nombre.contains('Ryzen 5') || p.nombre.contains('i5-12600')).firstOrNull;
+      mb = catalogoCompleto.where((p) => p.categoria == 'Motherboard' && p.precio > 800).firstOrNull;
+      ram = catalogoCompleto.where((p) => p.categoria == 'RAM' && p.nombre.contains('16GB')).firstOrNull;
+      psu = catalogoCompleto.where((p) => p.categoria == 'Fuente de Poder' && p.watts >= 600).firstOrNull;
+    } else if (perfil == 'oficina') {
+      cpu = catalogoCompleto.where((p) => p.categoria == 'Procesador' && p.precio < 1000).firstOrNull;
+      mb = catalogoCompleto.where((p) => p.categoria == 'Motherboard' && p.precio < 700).firstOrNull;
+      ram = catalogoCompleto.where((p) => p.categoria == 'RAM' && p.nombre.contains('8GB')).firstOrNull;
+      psu = catalogoCompleto.where((p) => p.categoria == 'Fuente de Poder' && p.watts <= 500).firstOrNull;
+    }
+
+    final piezasAuto = [cpu, mb, ram, psu].whereType<ItemModel>().toList();
+    
+    for (var p in piezasAuto) {
+      _grafo.agregarPieza(p);
+      _estado.agregarAlEnsamble(p);
+    }
+    
+    setState(() {
+      _cargando = false;
+      _conflictos = _grafo.verificarEnsamble(_estado.ensamble.toList());
+    });
+    _mostrarSnackbar('Perfil $perfil cargado automáticamente.');
+  }
+
+  // ── Exportación (Pablo) ───────────────────────────────────────────────────
+  void _mostrarMenuExportar() {
+    if (_estado.ensamble.isEmpty) {
+      _mostrarSnackbar('Agrega piezas al ensamble para poder exportar.', esError: true);
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.background,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('Exportar Ensamble', style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.image_rounded, color: AppColors.primary),
+              title: const Text('Compartir como Imagen', style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _exportarImagen();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf_rounded, color: AppColors.error),
+              title: const Text('Exportar como PDF', style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () {
+                Navigator.pop(ctx);
+                PdfGenerator.exportAndSharePdf(_estado.ensamble.toList(), _estado.totalPrecioEnsamble, _estado.totalWattsEnsamble.toInt());
+              },
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportarImagen() async {
+    setState(() => _cargando = true);
+    try {
+      final image = await _screenshotController.capture(delay: const Duration(milliseconds: 100));
+      if (image == null) throw Exception('No se pudo capturar la imagen');
+      
+      final directory = await getTemporaryDirectory();
+      final imagePath = await File('${directory.path}/ensamble.png').create();
+      await imagePath.writeAsBytes(image);
+      
+      await Share.shareXFiles([XFile(imagePath.path)], text: '¡Mira mi ensamble de PC!');
+    } catch (e) {
+      _mostrarSnackbar('Error al exportar: $e', esError: true);
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
+  }
+
+  // ── Funciones Generales ───────────────────────────────────────────────────
   Future<void> _agregarPiezaDesdeIA() async {
     setState(() => _cargando = true);
     final piezas = await ApiService.fetchData();
@@ -58,7 +204,6 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     if (elegida == null) return;
 
     _estado.agregarAlEnsamble(elegida);
-    // Agregar al grafo y verificar compatibilidad (Jose - Grafo)
     _grafo.agregarPieza(elegida);
     final piezasActuales = _estado.ensamble.toList();
     setState(() {
@@ -74,13 +219,11 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     }
   }
 
-  // ── Deshacer última acción ────────────────────────────────────────────────
   void _deshacer() {
     final pieza = _estado.deshacer();
     if (pieza == null) {
       _mostrarSnackbar('No hay acciones para deshacer.', esError: true);
     } else {
-      // Re-verificar compatibilidad sin la pieza quitada
       final piezasActuales = _estado.ensamble.toList();
       setState(() {
         _conflictos = _grafo.verificarEnsamble(piezasActuales);
@@ -89,19 +232,15 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     }
   }
 
-  // ── Consultar IA para Recomendaciones ─────────────────────────────────────
   Future<void> _consultarIA() async {
     if (_estado.ensamble.isEmpty) {
       _mostrarSnackbar('Agrega piezas al ensamble primero.', esError: true);
       return;
     }
     setState(() => _consultandoIA = true);
-    
     final resultado = await ApiService.checkCompatibility(_estado.ensamble.toList());
-    
     if (!mounted) return;
     setState(() => _consultandoIA = false);
-
     _mostrarResultadosIA(resultado);
   }
 
@@ -155,12 +294,9 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
                 setState(() => _cargando = true);
                 final catalogoCompleto = await ApiService.fetchData();
                 for (var id in idsSugeridos) {
-                  // El id en el JSON puede venir como int o como String
                   final idInt = id is int ? id : int.tryParse(id.toString());
                   final pieza = catalogoCompleto.where((p) => p.id == idInt).firstOrNull;
                   if (pieza != null) {
-                    // IMPORTANTE: primero registrar en el grafo para que la
-                    // verificación de compatibilidad funcione correctamente
                     _grafo.agregarPieza(pieza);
                     _estado.agregarAlEnsamble(pieza);
                   }
@@ -178,7 +314,6 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     );
   }
 
-  // ── Diálogo selector de pieza ─────────────────────────────────────────────
   Future<ItemModel?> _mostrarDialogoEleccion(List<ItemModel> piezas) {
     String filtroCategoria = 'Todas';
     final categorias = ['Todas', ...piezas.map((p) => p.categoria).toSet().toList()];
@@ -249,39 +384,20 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
                 ),
                 const SizedBox(height: 8),
                 Expanded(
-                  child: ListView.separated(
+                  child: ListView.builder(
                     controller: controller,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: piezasFiltradas.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(color: AppColors.divider, height: 1),
-                    itemBuilder: (ctx, i) {
-                      final pieza = piezasFiltradas[i];
+                    itemBuilder: (context, i) {
+                      final p = piezasFiltradas[i];
                       return ListTile(
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                        leading: Container(
-                          width: 32, height: 32,
-                          decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(8)),
-                          child: const Icon(Icons.memory_rounded,
-                              color: AppColors.secondary, size: 18),
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.surface,
+                          child: Icon(Icons.memory_rounded, color: AppColors.primary, size: 20),
                         ),
-                        title: Text(pieza.nombre,
-                            style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        subtitle: Text('${pieza.categoria} · ${pieza.watts}W',
-                            style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 11)),
-                        trailing: Text('Q${pieza.precio.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13)),
-                        onTap: () => Navigator.pop(ctx, pieza),
+                        title: Text(p.nombre, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+                        subtitle: Text('${p.categoria} · ${p.watts}W', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        trailing: Text('Q${p.precio.toStringAsFixed(0)}', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        onTap: () => Navigator.pop(ctx, p),
                       );
                     },
                   ),
@@ -294,9 +410,7 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     );
   }
 
-  void _mostrarSnackbar(String mensaje,
-      {bool esError = false,
-      Duration duracion = const Duration(seconds: 2)}) {
+  void _mostrarSnackbar(String mensaje, {bool esError = false, Duration duracion = const Duration(seconds: 2)}) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -347,6 +461,11 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
             onPressed: hayHistorial ? _deshacer : null,
           ),
           IconButton(
+            tooltip: 'Exportar Ensamble',
+            icon: const Icon(Icons.ios_share_rounded, color: AppColors.textOnDark),
+            onPressed: _mostrarMenuExportar,
+          ),
+          IconButton(
             tooltip: 'Cerrar sesión',
             icon: const Icon(Icons.logout_rounded, color: AppColors.textOnDark),
             onPressed: () {
@@ -360,21 +479,27 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildResumen(piezas.length),
-          if (_conflictos.isNotEmpty) _buildAlertaConflictos(),
-          Expanded(
-            child: piezas.isEmpty
-                ? _buildEstadoVacio()
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: piezas.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (_, i) => _buildTarjetaPieza(piezas[i], i),
-                  ),
+      body: Screenshot(
+        controller: _screenshotController,
+        child: Container(
+          color: AppColors.background,
+          child: Column(
+            children: [
+              _buildResumen(piezas.length),
+              if (_conflictos.isNotEmpty) _buildAlertaConflictos(),
+              Expanded(
+                child: piezas.isEmpty
+                    ? _buildEstadoVacio()
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: piezas.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (_, i) => _buildTarjetaPieza(piezas[i], i),
+                      ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _cargando ? null : _agregarPiezaDesdeIA,
@@ -468,66 +593,93 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     );
   }
 
+  // ── Tarjeta de Pieza Combinada (Jose y Marly) ─────────────────────────────
   Widget _buildTarjetaPieza(ItemModel pieza, int index) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
+    // Resaltado Rojo (Jose)
+    final tieneConflicto = _conflictos.any((c) => c.piezaA.id == pieza.id || c.piezaB.id == pieza.id);
+
+    // Swipe to Delete (Marly)
+    return Dismissible(
+      key: ValueKey('${pieza.id}_$index'),
+      direction: DismissDirection.endToStart,
+      onDismissed: (direction) {
+        _estado.eliminarDelEnsamble(pieza);
+        final piezasActuales = _estado.ensamble.toList();
+        setState(() {
+          _conflictos = _grafo.verificarEnsamble(piezasActuales);
+        });
+        _mostrarSnackbar('${pieza.nombre} eliminado.');
+      },
+      background: Container(
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20.0),
+        decoration: BoxDecoration(
+          color: AppColors.error,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 28, height: 28,
-            decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(8)),
-            child: Center(
-              child: Text('${index + 1}',
-                  style: const TextStyle(
-                      color: AppColors.textOnDark,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12)),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(pieza.nombre,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: tieneConflicto ? AppColors.error.withValues(alpha: 0.1) : AppColors.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: tieneConflicto ? AppColors.error : AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(
+                  color: tieneConflicto ? AppColors.error : AppColors.primary,
+                  borderRadius: BorderRadius.circular(8)),
+              child: Center(
+                child: Text('${index + 1}',
                     style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text('${pieza.categoria} · ${pieza.watts}W',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 11)),
-              ],
+                        color: AppColors.textOnDark,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12)),
+              ),
             ),
-          ),
-          Text('Q${pieza.precio.toStringAsFixed(0)}',
-              style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13)),
-          const SizedBox(width: 4),
-          IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: () {
-              _estado.eliminarDelEnsamble(pieza);
-              final piezasActuales = _estado.ensamble.toList();
-              setState(() {
-                _conflictos = _grafo.verificarEnsamble(piezasActuales);
-              });
-              _mostrarSnackbar('${pieza.nombre} eliminado.');
-            },
-          ),
-        ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(pieza.nombre,
+                      style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text('${pieza.categoria} · ${pieza.watts}W',
+                      style: const TextStyle(
+                          color: AppColors.textSecondary, fontSize: 11)),
+                ],
+              ),
+            ),
+            Text('Q${pieza.precio.toStringAsFixed(0)}',
+                style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13)),
+            const SizedBox(width: 4),
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () {
+                _estado.eliminarDelEnsamble(pieza);
+                final piezasActuales = _estado.ensamble.toList();
+                setState(() {
+                  _conflictos = _grafo.verificarEnsamble(piezasActuales);
+                });
+                _mostrarSnackbar('${pieza.nombre} eliminado.');
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
