@@ -469,7 +469,28 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
   }
 
   Widget _buildTarjetaPieza(ItemModel pieza, int index) {
-    return Container(
+    return Dismissible(
+      key: ValueKey('${pieza.id}_$index'),
+      direction: DismissDirection.endToStart,
+      onDismissed: (direction) {
+        _estado.eliminarDelEnsamble(pieza);
+        final piezasActuales = _estado.ensamble.toList();
+        setState(() {
+          _conflictos = _grafo.verificarEnsamble(piezasActuales);
+        });
+        _mostrarSnackbar('${pieza.nombre} eliminado.');
+      },
+      background: Container(
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20.0),
+        decoration: BoxDecoration(
+          color: AppColors.error,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+      ),
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -529,7 +550,7 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
