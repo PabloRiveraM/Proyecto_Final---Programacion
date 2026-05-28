@@ -1,6 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
-import json
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
 
 def scrape_amazon(search_query):
     # Amazon tiene medidas anti-bots fuertes, así que necesitamos simular un navegador real
@@ -22,7 +26,6 @@ def scrape_amazon(search_query):
     items = []
     
     # Esta clase suele ser el contenedor de los resultados de búsqueda de Amazon
-    # NOTA: Amazon cambia sus clases HTML constantemente, si el script falla, hay que inspeccionar la web y actualizar esto.
     results = soup.find_all('div', {'data-component-type': 's-search-result'})
     
     for item in results[:5]:  # Obtener los top 5 resultados
@@ -44,15 +47,15 @@ def scrape_amazon(search_query):
             
     return items
 
-if __name__ == "__main__":
-    print("Iniciando Amazon Scraper Bot...")
-    query = "AMD Ryzen 5 5600X"
-    resultados = scrape_amazon(query)
+@app.route('/search', methods=['GET'])
+def search():
+    query = request.args.get('q')
+    if not query:
+        return jsonify({"error": "No search query provided"}), 400
     
-    # Guardar en un JSON para que la app de Flutter lo pueda leer como un servicio API
-    with open('precios_amazon.json', 'w', encoding='utf-8') as f:
-        json.dump(resultados, f, ensure_ascii=False, indent=4)
-        
-    print(f"\nScraping completado. Se encontraron {len(resultados)} resultados.")
-    for res in resultados:
-        print(f"- {res['nombre'][:50]}... : {res['precio']}")
+    resultados = scrape_amazon(query)
+    return jsonify(resultados)
+
+if __name__ == "__main__":
+    print("Iniciando Amazon Scraper Bot (Servidor Flask)...")
+    app.run(host='0.0.0.0', port=5000, debug=True)
