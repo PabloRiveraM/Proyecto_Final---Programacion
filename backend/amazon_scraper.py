@@ -23,11 +23,18 @@ def scrape_amazon(search_query):
         return []
 
     soup = BeautifulSoup(response.content, 'html.parser')
-    items = []
+    page_title = soup.title.text.strip() if soup.title else "Sin Título"
     
     # Esta clase suele ser el contenedor de los resultados de búsqueda de Amazon
     results = soup.find_all('div', {'data-component-type': 's-search-result'})
     
+    print(f"  -> Título de la página de Amazon: '{page_title}'")
+    print(f"  -> Resultados encontrados: {len(results)}")
+    
+    if "api-services" in page_title.lower() or "robot" in page_title.lower() or "captcha" in page_title.lower() or "automated" in page_title.lower():
+        print("  [⚠️ ALERTA] Amazon detectó la solicitud como un bot (CAPTCHA / Robot Check).")
+
+    items = []
     for item in results[:5]:  # Obtener los top 5 resultados
         title_element = item.find('h2', class_='a-size-mini')
         price_whole = item.find('span', class_='a-price-whole')
