@@ -1,10 +1,9 @@
 // lib/screens/analysis_screen.dart
 // Autor: Diego (Apioide) — feature/diego-wishlist-analisis
 //
-// Pantalla de Análisis de gasto:
-//   - Gráfica de barras (fl_chart) con gasto total por categoría
-//   - Lógica: lee el ensamble actual del AppState y agrupa por categoría
-//   - Resumen: pieza más cara, categoría mayor inversión, total general
+// Pantalla de Análisis de Consumo:
+//   - Gráfica de barras (fl_chart) con consumo (Watts) por categoría
+//   - Resumen: pieza de mayor consumo, categoría con más watts
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -36,19 +35,27 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
   void _actualizar() => setState(() {});
 
-  // ── Datos para la gráfica ─────────────────────────────────────────────────
-  Map<String, double> get _gastoCategoria => _estado.gastoPorCategoria;
+  // ── Datos para la gráfica (Watts por categoría) ──────────────────────────
+  Map<String, double> get _wattsPorCategoria {
+    final piezas = _estado.ensamble.toList();
+    final Map<String, double> mapa = {};
+    for (final p in piezas) {
+      mapa[p.categoria] = (mapa[p.categoria] ?? 0) + p.watts;
+    }
+    return mapa;
+  }
 
   List<ItemModel> get _piezas => _estado.ensamble.toList();
 
-  ItemModel? get _piezaMasCara {
+  ItemModel? get _piezaMayorConsumo {
     if (_piezas.isEmpty) return null;
-    return _piezas.reduce((a, b) => a.precio > b.precio ? a : b);
+    return _piezas.reduce((a, b) => a.watts > b.watts ? a : b);
   }
 
-  String get _categoriaMayorInversion {
-    if (_gastoCategoria.isEmpty) return '—';
-    return _gastoCategoria.entries
+  String get _categoriaMayorConsumo {
+    final datos = _wattsPorCategoria;
+    if (datos.isEmpty) return '—';
+    return datos.entries
         .reduce((a, b) => a.value > b.value ? a : b)
         .key;
   }
@@ -66,7 +73,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     final piezas = _piezas;
-    final gasto = _gastoCategoria;
+    final datos = _wattsPorCategoria;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -75,7 +82,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         foregroundColor: AppColors.textOnDark,
         elevation: 0,
         centerTitle: true,
-        title: const Text('Análisis de Gasto',
+        title: const Text('Análisis de Consumo',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
       ),
       body: piezas.isEmpty
@@ -87,9 +94,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 children: [
                   _buildTotalCard(),
                   const SizedBox(height: 20),
-                  _buildGrafica(gasto),
+                  _buildGrafica(datos),
                   const SizedBox(height: 20),
-                  _buildResumen(gasto),
+                  _buildResumen(datos),
                   const SizedBox(height: 20),
                   _buildDetallePiezas(piezas),
                   const SizedBox(height: 24),
@@ -131,13 +138,13 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Inversión total',
+          Text('Consumo total del ensamble',
               style: TextStyle(
                   color: AppColors.textOnDark.withValues(alpha: 0.7),
                   fontSize: 13)),
           const SizedBox(height: 8),
           Text(
-            'Q${_estado.totalPrecioEnsamble.toStringAsFixed(2)}',
+            '${_estado.totalWattsEnsamble} W',
             style: const TextStyle(
                 color: AppColors.textOnDark,
                 fontSize: 32,
@@ -145,7 +152,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${_piezas.length} piezas · ${_estado.totalWattsEnsamble}W total',
+            '${_piezas.length} piezas en el ensamble',
             style: TextStyle(
                 color: AppColors.textOnDark.withValues(alpha: 0.65),
                 fontSize: 12),
@@ -156,22 +163,22 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   // ── Widget: Gráfica de barras (fl_chart) ─────────────────────────────────
-  Widget _buildGrafica(Map<String, double> gasto) {
-    if (gasto.isEmpty) return const SizedBox.shrink();
+  Widget _buildGrafica(Map<String, double> datos) {
+    if (datos.isEmpty) return const SizedBox.shrink();
 
-    final categorias = gasto.keys.toList();
-    final maxValor = gasto.values.reduce((a, b) => a > b ? a : b);
+    final categorias = datos.keys.toList();
+    final maxValor = datos.values.reduce((a, b) => a > b ? a : b);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Gasto por categoría',
+        const Text('Consumo por categoría (W)',
             style: TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        const Text('Estructurado mediante AppState.gastoPorCategoria()',
+        const Text('Watts consumidos por cada tipo de componente',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
         const SizedBox(height: 16),
         Container(
@@ -190,7 +197,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 touchTooltipData: BarTouchTooltipData(
                   getTooltipColor: (_) => AppColors.primary,
                   getTooltipItem: (group, gI, rod, rI) => BarTooltipItem(
-                    'Q${rod.toY.toStringAsFixed(0)}',
+                    '${rod.toY.toStringAsFixed(0)}W',
                     const TextStyle(
                         color: AppColors.textOnDark,
                         fontWeight: FontWeight.bold,
@@ -204,7 +211,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                     showTitles: true,
                     reservedSize: 44,
                     getTitlesWidget: (val, meta) => Text(
-                      'Q${val.toInt()}',
+                      '${val.toInt()}W',
                       style: const TextStyle(
                           color: AppColors.textSecondary, fontSize: 9),
                     ),
@@ -245,13 +252,12 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               ),
               borderData: FlBorderData(show: false),
               barGroups: List.generate(categorias.length, (i) {
-                final color =
-                    _barColors[i % _barColors.length];
+                final color = _barColors[i % _barColors.length];
                 return BarChartGroupData(
                   x: i,
                   barRods: [
                     BarChartRodData(
-                      toY: gasto[categorias[i]] ?? 0,
+                      toY: datos[categorias[i]] ?? 0,
                       color: color,
                       width: 22,
                       borderRadius: const BorderRadius.vertical(
@@ -268,8 +274,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   // ── Widget: Resumen estadístico ──────────────────────────────────────────
-  Widget _buildResumen(Map<String, double> gasto) {
-    final pieza = _piezaMasCara;
+  Widget _buildResumen(Map<String, double> datos) {
+    final pieza = _piezaMayorConsumo;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -282,19 +288,17 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         Row(
           children: [
             _ResumenTile(
-              titulo: 'Pieza más cara',
-              valor: pieza != null
-                  ? 'Q${pieza.precio.toStringAsFixed(0)}'
-                  : '—',
+              titulo: 'Mayor consumo',
+              valor: pieza != null ? '${pieza.watts}W' : '—',
               subtitulo: pieza?.nombre ?? '',
-              icon: Icons.star_rounded,
+              icon: Icons.bolt_rounded,
             ),
             const SizedBox(width: 10),
             _ResumenTile(
-              titulo: 'Mayor inversión',
-              valor: _categoriaMayorInversion,
-              subtitulo: gasto[_categoriaMayorInversion] != null
-                  ? 'Q${gasto[_categoriaMayorInversion]!.toStringAsFixed(0)}'
+              titulo: 'Categoría top',
+              valor: _categoriaMayorConsumo,
+              subtitulo: datos[_categoriaMayorConsumo] != null
+                  ? '${datos[_categoriaMayorConsumo]!.toStringAsFixed(0)}W'
                   : '',
               icon: Icons.trending_up_rounded,
             ),
@@ -328,7 +332,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                       style: const TextStyle(
                           color: AppColors.textSecondary, fontSize: 11)),
                   const SizedBox(width: 12),
-                  Text('Q${p.precio.toStringAsFixed(0)}',
+                  Text('${p.watts}W',
                       style: const TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.bold,

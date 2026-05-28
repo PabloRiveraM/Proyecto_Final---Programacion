@@ -166,7 +166,7 @@ class ApiService {
   // =========================================================================
   static Future<List<dynamic>> searchAmazon(String query) async {
     // IMPORTANTE: Cambiar esta IP por la IP local de la computadora donde corre el bot
-    const String ipBot = '192.168.1.5'; // <-- CONFIGURA TU IP AQUÍ
+    const String ipBot = '192.168.0.106'; // <-- CONFIGURA TU IP AQUÍ
     final url = Uri.parse('http://$ipBot:5000/search?q=${Uri.encodeComponent(query)}');
 
     try {

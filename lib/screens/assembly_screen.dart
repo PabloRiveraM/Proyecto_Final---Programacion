@@ -562,52 +562,76 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
         title: const Text('Ensamble Actual',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         actions: [
-          if (_consultandoIA)
+          // IA y Amazon con su indicador de carga
+          if (_consultandoIA || _consultandoAmazon)
             const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppColors.textOnDark, strokeWidth: 2)),
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: AppColors.textOnDark, strokeWidth: 2.5)),
             )
-          else
+          else ...[  
             IconButton(
-              tooltip: 'Recomendación IA',
-              icon: const Icon(Icons.psychology_rounded, color: AppColors.textOnDark),
+              tooltip: 'Análisis IA',
+              icon: const Icon(Icons.psychology_rounded),
+              color: AppColors.textOnDark,
               onPressed: _consultarIA,
             ),
-          IconButton(
-            tooltip: 'Deshacer',
-            icon: Icon(Icons.undo_rounded,
-                color: hayHistorial
-                    ? AppColors.textOnDark
-                    : AppColors.textOnDark.withValues(alpha: 0.3)),
-            onPressed: hayHistorial ? _deshacer : null,
-          ),
-          if (_consultandoAmazon)
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppColors.textOnDark, strokeWidth: 2)),
-            )
-          else
             IconButton(
               tooltip: 'Precios en Amazon',
-              icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.textOnDark),
+              icon: const Icon(Icons.shopping_cart_outlined),
+              color: AppColors.textOnDark,
               onPressed: _consultarAmazonGeneral,
             ),
-          IconButton(
-            tooltip: 'Exportar Ensamble',
-            icon: const Icon(Icons.ios_share_rounded, color: AppColors.textOnDark),
-            onPressed: _mostrarMenuExportar,
-          ),
-          IconButton(
-            tooltip: 'Cerrar sesión',
-            icon: const Icon(Icons.logout_rounded, color: AppColors.textOnDark),
-            onPressed: () {
-              AppState().logout();
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                (route) => false,
-              );
+          ],
+          // Menú secundario con más opciones
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded, color: AppColors.textOnDark),
+            color: AppColors.background,
+            onSelected: (value) {
+              if (value == 'deshacer') _deshacer();
+              if (value == 'exportar') _mostrarMenuExportar();
+              if (value == 'logout') {
+                AppState().logout();
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
             },
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
+                value: 'deshacer',
+                enabled: hayHistorial,
+                child: Row(
+                  children: [
+                    Icon(Icons.undo_rounded, color: hayHistorial ? AppColors.textPrimary : AppColors.textSecondary, size: 20),
+                    const SizedBox(width: 12),
+                    Text('Deshacer', style: TextStyle(color: hayHistorial ? AppColors.textPrimary : AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'exportar',
+                child: Row(
+                  children: [
+                    Icon(Icons.ios_share_rounded, color: AppColors.textPrimary, size: 20),
+                    SizedBox(width: 12),
+                    Text('Exportar ensamble', style: TextStyle(color: AppColors.textPrimary)),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
+                    SizedBox(width: 12),
+                    Text('Cerrar sesión', style: TextStyle(color: AppColors.error)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -660,9 +684,6 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
           _Stat(Icons.memory_rounded, '$count', 'Piezas'),
           const SizedBox(width: 12),
           _Stat(Icons.bolt_rounded, '${_estado.totalWattsEnsamble}W', 'Consumo'),
-          const SizedBox(width: 12),
-          _Stat(Icons.attach_money_rounded,
-              'Q${_estado.totalPrecioEnsamble.toStringAsFixed(0)}', 'Total'),
         ],
       ),
     );

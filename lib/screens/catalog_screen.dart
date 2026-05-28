@@ -321,15 +321,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 Text('${pieza.watts}W',
                     style: const TextStyle(
                         color: AppColors.textSecondary, fontSize: 10)),
-                const SizedBox(height: 4),
-                Text(
-                  'Q${pieza.precio.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
               ],
             ),
           ),
