@@ -165,9 +165,8 @@ class ApiService {
   // MÉTODO 3: Consultar precios en Amazon (Python Bot)
   // =========================================================================
   static Future<List<dynamic>> searchAmazon(String query) async {
-    // IMPORTANTE: Cambiar esta IP por la IP local de la computadora donde corre el bot
-    const String ipBot = '192.168.0.106'; // <-- CONFIGURA TU IP AQUÍ
-    final url = Uri.parse('http://$ipBot:5000/search?q=${Uri.encodeComponent(query)}');
+    // URL del bot de Amazon hospedado en Render (Nube)
+    final url = Uri.parse('https://proyecto-final-programacion-hrc6.onrender.com/search?q=${Uri.encodeComponent(query)}');
 
     try {
       final response = await http.get(url).timeout(const Duration(seconds: 15));
