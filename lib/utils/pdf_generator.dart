@@ -61,13 +61,17 @@ class PdfGenerator {
                     'Componente',
                     'Categoría',
                     'Consumo (W)',
-                    tieneAmazon ? 'Precio Amazon (USD)' : 'Precio Est. (Q)',
+                    tieneAmazon ? 'Precio Amazon (USD / GTQ)' : 'Precio Est. (Q)',
                   ],
                   // Filas de datos
                   ...items.asMap().entries.map((e) {
                     final nombre = e.value.nombre;
+                    final precioUSD = amazonPrecios[nombre];
+                    final precioGTQ = _convertirAQuetzales(precioUSD);
                     final precioMostrar = tieneAmazon
-                        ? (amazonPrecios[nombre] ?? 'No encontrado')
+                        ? (precioUSD != null && precioUSD != 'No encontrado' && precioUSD != 'No disponible'
+                            ? '$precioUSD (~ $precioGTQ)'
+                            : 'No disponible')
                         : 'Q${e.value.precio.toStringAsFixed(2)}';
 
                     return [
@@ -124,11 +128,52 @@ class PdfGenerator {
                 ),
               ],
               if (tieneAmazon) ...[
-                pw.SizedBox(height: 8),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      'Total Amazon Referencia (USD):',
+                      style: pw.TextStyle(
+                        fontSize: 14,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.Text(
+                      '\$${_calcularTotalAmazon(items, amazonPrecios).toStringAsFixed(2)}',
+                      style: pw.TextStyle(
+                        fontSize: 14,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue800,
+                      ),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 4),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      'Total Amazon Referencia (GTQ):',
+                      style: pw.TextStyle(
+                        fontSize: 15,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.Text(
+                      'Q${(_calcularTotalAmazon(items, amazonPrecios) * 7.80).toStringAsFixed(2)}',
+                      style: pw.TextStyle(
+                        fontSize: 15,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.green800,
+                      ),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 12),
                 pw.Text(
-                  '* Precios obtenidos de Amazon. Los valores están en dólares (USD) y pueden variar.',
+                  '* Precios obtenidos de Amazon en USD y convertidos a Quetzales con una tasa estimada de 1 USD = Q7.80.',
                   style: pw.TextStyle(
-                    fontSize: 10,
+                    fontSize: 9,
                     color: PdfColors.grey600,
                     fontStyle: pw.FontStyle.italic,
                   ),
@@ -147,6 +192,34 @@ class PdfGenerator {
     await Share.shareXFiles(
       [XFile(file.path)],
       text: 'Adjunto mi orden de ensamble de PC.',
-    );
+  }
+
+  static String _convertirAQuetzales(String? precioUSD) {
+    if (precioUSD == null || precioUSD == 'No disponible' || precioUSD == 'No encontrado' || precioUSD.isEmpty) {
+      return 'No disponible';
+    }
+    try {
+      final limpio = precioUSD.replaceAll(RegExp(r'[^\d.]'), '');
+      final valorUSD = double.parse(limpio);
+      final tasaCambio = 7.80;
+      final valorGTQ = valorUSD * tasaCambio;
+      return 'Q${valorGTQ.toStringAsFixed(2)}';
+    } catch (e) {
+      return precioUSD;
+    }
+  }
+
+  static double _calcularTotalAmazon(List<ItemModel> items, Map<String, String> amazonPrecios) {
+    double total = 0.0;
+    for (final item in items) {
+      final precioStr = amazonPrecios[item.nombre];
+      if (precioStr != null && precioStr != 'No encontrado' && precioStr != 'No disponible') {
+        try {
+          final limpio = precioStr.replaceAll(RegExp(r'[^\d.]'), '');
+          total += double.parse(limpio);
+        } catch (_) {}
+      }
+    }
+    return total;
   }
 }

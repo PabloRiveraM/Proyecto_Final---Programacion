@@ -246,25 +246,32 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: todosResultados.entries.map((entry) {
-                final resultados = entry.value;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12, bottom: 4),
-                      child: Text(entry.key,
-                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
-                    ),
-                    if (resultados.isEmpty)
-                      const Text('Sin resultados', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))
-                    else
-                      ...resultados.take(2).map((res) => ListTile(
+              children: [
+                ...todosResultados.entries.map((entry) {
+                  final resultados = entry.value;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12, bottom: 4),
+                        child: Text(entry.key,
+                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ),
+                      if (resultados.isEmpty)
+                        const Text('Sin resultados', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))
+                      else
+                        ...resultados.take(2).map((res) {
+                          final precioUSD = res['precio'] ?? '';
+                          final precioGTQ = _convertirAQuetzales(precioUSD);
+                          final mostrarPrecio = precioUSD != 'No disponible' && precioUSD.isNotEmpty
+                              ? '$precioUSD (~ $precioGTQ)'
+                              : 'No disponible';
+                          return ListTile(
                             contentPadding: EdgeInsets.zero,
                             dense: true,
                             title: Text(res['nombre'] ?? '', style: const TextStyle(color: AppColors.textPrimary, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
-                            subtitle: Text(res['precio'] ?? '', style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 13)),
+                            subtitle: Text(mostrarPrecio, style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 12)),
                             trailing: IconButton(
                               icon: const Icon(Icons.open_in_browser_rounded, color: AppColors.primary, size: 20),
                               onPressed: () async {
@@ -277,11 +284,57 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
                                 }
                               },
                             ),
-                          )),
-                    const Divider(color: AppColors.border),
-                  ],
-                );
-              }).toList(),
+                          );
+                        }),
+                      const Divider(color: AppColors.border),
+                    ],
+                  );
+                }).toList(),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Total Ensamble en Amazon (Referencia)',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Total USD:', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                          Text(
+                            '\$${_calcularTotalAmazon(nuevosPreciosAmazon).toStringAsFixed(2)}',
+                            style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Total GTQ (Quetzales):', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                          Text(
+                            'Q${(_calcularTotalAmazon(nuevosPreciosAmazon) * 7.80).toStringAsFixed(2)}',
+                            style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -829,6 +882,34 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
         ),
       ),
     );
+  }
+
+  String _convertirAQuetzales(String? precioUSD) {
+    if (precioUSD == null || precioUSD == 'No disponible' || precioUSD.isEmpty) {
+      return 'No disponible';
+    }
+    try {
+      final limpio = precioUSD.replaceAll(RegExp(r'[^\d.]'), '');
+      final valorUSD = double.parse(limpio);
+      final tasaCambio = 7.80;
+      final valorGTQ = valorUSD * tasaCambio;
+      return 'Q${valorGTQ.toStringAsFixed(2)}';
+    } catch (e) {
+      return precioUSD;
+    }
+  }
+
+  double _calcularTotalAmazon(Map<String, String> precios) {
+    double total = 0.0;
+    for (final precioStr in precios.values) {
+      if (precioStr != 'No disponible' && precioStr.isNotEmpty) {
+        try {
+          final limpio = precioStr.replaceAll(RegExp(r'[^\d.]'), '');
+          total += double.parse(limpio);
+        } catch (_) {}
+      }
+    }
+    return total;
   }
 }
 
