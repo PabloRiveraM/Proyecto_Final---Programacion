@@ -73,8 +73,6 @@ class _WishlistScreenState extends State<WishlistScreen> {
   @override
   Widget build(BuildContext context) {
     final piezas = _estado.wishlist.toList();
-    final totalWishlist =
-        piezas.fold(0.0, (sum, p) => sum + p.precio);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -90,7 +88,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
           ? _buildVacio()
           : Column(
               children: [
-                _buildHeader(piezas.length, totalWishlist),
+                _buildHeader(piezas.length),
                 _buildInfoCola(),
                 Expanded(child: _buildListaCola(piezas)),
               ],
@@ -135,7 +133,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
     );
   }
 
-  Widget _buildHeader(int count, double total) {
+  Widget _buildHeader(int count) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.all(16),
@@ -146,11 +144,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
         children: [
           _HeaderStat(Icons.favorite_rounded, '$count', 'En lista'),
           const SizedBox(width: 12),
-          _HeaderStat(Icons.attach_money_rounded,
-              'Q${total.toStringAsFixed(0)}', 'Total'),
-          const SizedBox(width: 12),
-          _HeaderStat(Icons.arrow_forward_rounded,
-              'FIFO', 'Orden cola'),
+          _HeaderStat(Icons.arrow_forward_rounded, 'FIFO', 'Orden cola'),
         ],
       ),
     );
@@ -227,14 +221,6 @@ class _WishlistScreenState extends State<WishlistScreen> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Q${pieza.precio.toStringAsFixed(0)}',
-                    style: TextStyle(
-                        color: esPrimero
-                            ? AppColors.textOnDark
-                            : AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15)),
-                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => _quitarDeLaWishlist(pieza),
                   child: Icon(Icons.close_rounded,
