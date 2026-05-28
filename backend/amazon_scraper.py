@@ -52,6 +52,7 @@ def scrape_amazon(search_query):
                 "enlace": link
             })
             
+    print(f"  -> Elementos válidos procesados (con precio y título): {len(items)}")
     return items
 
 @app.route('/search', methods=['GET'])
