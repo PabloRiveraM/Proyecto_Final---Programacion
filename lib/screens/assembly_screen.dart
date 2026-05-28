@@ -35,9 +35,12 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
   final CompatibilityGraph _grafo = CompatibilityGraph();
   bool _cargando = false;
   bool _consultandoIA = false;
+  bool _consultandoAmazon = false;
   List<ConflictoCompatibilidad> _conflictos = [];
   bool _dialogoMostrado = false;
   final ScreenshotController _screenshotController = ScreenshotController();
+  // Precios de Amazon guardados para usar en el PDF
+  Map<String, String> _preciosAmazon = {};
 
   @override
   void initState() {
@@ -136,6 +139,7 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
       _mostrarSnackbar('Agrega piezas al ensamble para poder exportar.', esError: true);
       return;
     }
+    // Si ya se consultaron precios de Amazon, incluirlos en el PDF automáticamente
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.background,
@@ -161,7 +165,12 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
               title: const Text('Exportar como PDF', style: TextStyle(color: AppColors.textPrimary)),
               onTap: () {
                 Navigator.pop(ctx);
-                PdfGenerator.exportAndSharePdf(_estado.ensamble.toList(), _estado.totalPrecioEnsamble, _estado.totalWattsEnsamble.toInt());
+                PdfGenerator.exportAndSharePdf(
+                  _estado.ensamble.toList(),
+                  _estado.totalPrecioEnsamble,
+                  _estado.totalWattsEnsamble.toInt(),
+                  amazonPrecios: _preciosAmazon,
+                );
               },
             ),
             const SizedBox(height: 10),
@@ -189,14 +198,35 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     }
   }
 
-  Future<void> _consultarBotAmazon(ItemModel pieza) async {
-    setState(() => _cargando = true);
-    final resultados = await ApiService.searchAmazon(pieza.nombre);
-    if (!mounted) return;
-    setState(() => _cargando = false);
+  // Consulta Amazon para TODOS los componentes del ensamble de una sola vez
+  Future<void> _consultarAmazonGeneral() async {
+    if (_estado.ensamble.isEmpty) {
+      _mostrarSnackbar('Agrega piezas al ensamble primero.', esError: true);
+      return;
+    }
+    setState(() => _consultandoAmazon = true);
 
-    if (resultados.isEmpty) {
-      _mostrarSnackbar('No se pudo obtener resultados. Asegúrate de tener el bot Python corriendo en la IP correcta.', esError: true, duracion: const Duration(seconds: 4));
+    final piezas = _estado.ensamble.toList();
+    final Map<String, List<dynamic>> todosResultados = {};
+    final Map<String, String> nuevosPreciosAmazon = {};
+
+    for (final pieza in piezas) {
+      final resultados = await ApiService.searchAmazon(pieza.nombre);
+      todosResultados[pieza.nombre] = resultados;
+      // Guardar el primer precio encontrado para el PDF
+      if (resultados.isNotEmpty && resultados.first['precio'] != null) {
+        nuevosPreciosAmazon[pieza.nombre] = resultados.first['precio'];
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _consultandoAmazon = false;
+      _preciosAmazon = nuevosPreciosAmazon;
+    });
+
+    if (todosResultados.values.every((r) => r.isEmpty)) {
+      _mostrarSnackbar('No se pudo conectar con el bot de Amazon. Verifica que el servidor Python esté corriendo.', esError: true, duracion: const Duration(seconds: 5));
       return;
     }
 
@@ -204,43 +234,75 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.background,
-        title: Row(
-          children: const [
+        title: const Row(
+          children: [
             Icon(Icons.shopping_cart_rounded, color: AppColors.primary),
             SizedBox(width: 8),
-            Text('Precios en Amazon', style: TextStyle(color: AppColors.textPrimary, fontSize: 18)),
+            Expanded(child: Text('Precios en Amazon', style: TextStyle(color: AppColors.textPrimary, fontSize: 18))),
           ],
         ),
         content: SizedBox(
           width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: resultados.length,
-            itemBuilder: (_, i) {
-              final res = resultados[i];
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(res['nombre'], style: const TextStyle(color: AppColors.textPrimary, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
-                subtitle: Text(res['precio'], style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 14)),
-                trailing: IconButton(
-                  icon: const Icon(Icons.open_in_browser_rounded, color: AppColors.primary),
-                  onPressed: () async {
-                    if (res['enlace'] != null && res['enlace'].toString().isNotEmpty) {
-                      final uri = Uri.parse(res['enlace']);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
-                      }
-                    }
-                  },
-                ),
-              );
-            },
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: todosResultados.entries.map((entry) {
+                final resultados = entry.value;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12, bottom: 4),
+                      child: Text(entry.key,
+                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
+                    if (resultados.isEmpty)
+                      const Text('Sin resultados', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))
+                    else
+                      ...resultados.take(2).map((res) => ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            title: Text(res['nombre'] ?? '', style: const TextStyle(color: AppColors.textPrimary, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+                            subtitle: Text(res['precio'] ?? '', style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 13)),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.open_in_browser_rounded, color: AppColors.primary, size: 20),
+                              onPressed: () async {
+                                final enlace = res['enlace'];
+                                if (enlace != null && enlace.toString().isNotEmpty) {
+                                  final uri = Uri.parse(enlace);
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                  }
+                                }
+                              },
+                            ),
+                          )),
+                    const Divider(color: AppColors.border),
+                  ],
+                );
+              }).toList(),
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cerrar', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: AppColors.textOnDark),
+            icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+            label: const Text('Exportar con estos precios'),
+            onPressed: () {
+              Navigator.pop(ctx);
+              PdfGenerator.exportAndSharePdf(
+                _estado.ensamble.toList(),
+                _estado.totalPrecioEnsamble,
+                _estado.totalWattsEnsamble.toInt(),
+                amazonPrecios: _preciosAmazon,
+              );
+            },
           ),
         ],
       ),
@@ -519,6 +581,17 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
                     : AppColors.textOnDark.withValues(alpha: 0.3)),
             onPressed: hayHistorial ? _deshacer : null,
           ),
+          if (_consultandoAmazon)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppColors.textOnDark, strokeWidth: 2)),
+            )
+          else
+            IconButton(
+              tooltip: 'Precios en Amazon',
+              icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.textOnDark),
+              onPressed: _consultarAmazonGeneral,
+            ),
           IconButton(
             tooltip: 'Exportar Ensamble',
             icon: const Icon(Icons.ios_share_rounded, color: AppColors.textOnDark),
@@ -718,19 +791,6 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
                 ],
               ),
             ),
-            Text('Q${pieza.precio.toStringAsFixed(0)}',
-                style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13)),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.textSecondary, size: 20),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: () => _consultarBotAmazon(pieza),
-            ),
-            const SizedBox(width: 12),
             IconButton(
               icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
               padding: EdgeInsets.zero,
