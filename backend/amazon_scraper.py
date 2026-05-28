@@ -33,28 +33,51 @@ def scrape_amazon(search_query):
     
     if "api-services" in page_title.lower() or "robot" in page_title.lower() or "captcha" in page_title.lower() or "automated" in page_title.lower():
         print("  [⚠️ ALERTA] Amazon detectó la solicitud como un bot (CAPTCHA / Robot Check).")
-
     items = []
-    for item in results[:5]:  # Obtener los top 5 resultados
-        title_element = item.find('h2', class_='a-size-mini')
-        price_whole = item.find('span', class_='a-price-whole')
-        price_fraction = item.find('span', class_='a-price-fraction')
-        link_element = item.find('a', class_='a-link-normal')
-
-        if title_element and price_whole:
+    for item in results[:5]:
+        # Intentar buscar título
+        title = ""
+        title_element = item.find('h2')
+        if title_element:
             title = title_element.text.strip()
-            price = f"${price_whole.text}{price_fraction.text if price_fraction else '00'}"
-            link = f"https://www.amazon.com{link_element['href']}" if link_element else ""
-            
+        else:
+            title_element = item.find('span', class_='a-size-medium')
+            if title_element:
+                title = title_element.text.strip()
+        
+        # Intentar buscar precio
+        price = ""
+        price_element = item.find('span', class_='a-offscreen')
+        if price_element:
+            price = price_element.text.strip()
+        else:
+            price_whole = item.find('span', class_='a-price-whole')
+            price_fraction = item.find('span', class_='a-price-fraction')
+            if price_whole:
+                price = f"${price_whole.text.strip()}{price_fraction.text.strip() if price_fraction else '00'}"
+        
+        # Intentar buscar enlace
+        link = ""
+        link_element = item.find('a', class_='a-link-normal')
+        if link_element and 'href' in link_element.attrs:
+            href = link_element['href']
+            if href.startswith('http'):
+                link = href
+            else:
+                link = f"https://www.amazon.com{href}"
+
+        # Si tenemos al menos título, es un resultado válido
+        if title:
+            if not price:
+                price = "No disponible"
             items.append({
                 "nombre": title,
                 "precio": price,
                 "enlace": link
             })
             
-    print(f"  -> Elementos válidos procesados (con precio y título): {len(items)}")
+    print(f"  -> Elementos válidos procesados: {len(items)}")
     return items
-
 @app.route('/search', methods=['GET'])
 def search():
     query = request.args.get('q')
