@@ -192,6 +192,7 @@ class PdfGenerator {
     await Share.shareXFiles(
       [XFile(file.path)],
       text: 'Adjunto mi orden de ensamble de PC.',
+    );
   }
 
   static String _convertirAQuetzales(String? precioUSD) {
