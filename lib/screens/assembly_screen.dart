@@ -122,8 +122,10 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     final piezasAuto = [cpu, mb, ram, psu].whereType<ItemModel>().toList();
     
     for (var p in piezasAuto) {
-      _grafo.agregarPieza(p);
-      _estado.agregarAlEnsamble(p);
+      final error = _estado.agregarAlEnsamble(p);
+      if (error == null) {
+        _grafo.agregarPieza(p);
+      }
     }
     
     setState(() {
@@ -377,7 +379,11 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     final elegida = await _mostrarDialogoEleccion(piezas);
     if (elegida == null) return;
 
-    _estado.agregarAlEnsamble(elegida);
+    final error = _estado.agregarAlEnsamble(elegida);
+    if (error != null) {
+      _mostrarSnackbar(error, esError: true);
+      return;
+    }
     _grafo.agregarPieza(elegida);
     final piezasActuales = _estado.ensamble.toList();
     setState(() {
@@ -471,8 +477,10 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
                   final idInt = id is int ? id : int.tryParse(id.toString());
                   final pieza = catalogoCompleto.where((p) => p.id == idInt).firstOrNull;
                   if (pieza != null) {
-                    _grafo.agregarPieza(pieza);
-                    _estado.agregarAlEnsamble(pieza);
+                    final error = _estado.agregarAlEnsamble(pieza);
+                    if (error == null) {
+                      _grafo.agregarPieza(pieza);
+                    }
                   }
                 }
                 setState(() {

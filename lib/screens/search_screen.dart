@@ -94,8 +94,12 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _agregarAlEnsamble(ItemModel pieza) {
-    _estado.agregarAlEnsamble(pieza);
-    _snack('${pieza.nombre} agregada al ensamble');
+    final error = _estado.agregarAlEnsamble(pieza);
+    if (error != null) {
+      _snack(error, esError: true);
+    } else {
+      _snack('${pieza.nombre} agregada al ensamble');
+    }
   }
 
   void _agregarAWishlist(ItemModel pieza) {
@@ -103,13 +107,13 @@ class _SearchScreenState extends State<SearchScreen> {
     _snack('${pieza.nombre} guardada en Wishlist');
   }
 
-  void _snack(String msg) {
+  void _snack(String msg, {bool esError = false}) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg,
             style: const TextStyle(color: AppColors.textOnDark)),
-        backgroundColor: AppColors.primary,
+        backgroundColor: esError ? AppColors.error : AppColors.primary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         duration: const Duration(seconds: 2),

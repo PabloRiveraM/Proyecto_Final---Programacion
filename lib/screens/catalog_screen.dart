@@ -61,8 +61,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   // ── Agregar al ensamble ──────────────────────────────────────────────────
   void _agregarAlEnsamble(ItemModel pieza) {
-    _estado.agregarAlEnsamble(pieza);
-    _mostrarSnackbar('${pieza.nombre} agregada al ensamble');
+    final error = _estado.agregarAlEnsamble(pieza);
+    if (error != null) {
+      _mostrarSnackbar(error, esError: true);
+    } else {
+      _mostrarSnackbar('${pieza.nombre} agregada al ensamble');
+    }
   }
 
   // ── Agregar a Wishlist ───────────────────────────────────────────────────

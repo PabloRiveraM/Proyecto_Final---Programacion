@@ -37,9 +37,12 @@ class _WishlistScreenState extends State<WishlistScreen> {
 
   // Dequeue: comprar la pieza del frente y moverla al ensamble
   void _comprar() {
-    final pieza = _estado.comprarDesdWishlist();
-    if (pieza == null) return;
-    _snack('${pieza.nombre} movida al ensamble.');
+    final error = _estado.comprarDesdWishlist();
+    if (error != null) {
+      _snack(error, esError: true);
+    } else {
+      _snack('Pieza de la Wishlist movida al ensamble.');
+    }
   }
 
   // Quitar una pieza específica sin comprarla (por si el usuario se arrepiente)

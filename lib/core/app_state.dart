@@ -77,10 +77,18 @@ class AppState {
 
   // === Operaciones del Ensamble (Marly) ===
 
-  void agregarAlEnsamble(ItemModel pieza) {
+  String? agregarAlEnsamble(ItemModel pieza) {
+    final cat = pieza.categoria.toLowerCase();
+    if (cat == 'procesador' || cat == 'motherboard') {
+      final yaExiste = ensamble.toList().any((p) => p.categoria.toLowerCase() == cat);
+      if (yaExiste) {
+        return 'Ya hay un $cat en el ensamble. Solo se permite uno.';
+      }
+    }
     ensamble.insert(pieza);
     historial.push(pieza);
     notificar();
+    return null;
   }
 
   void eliminarDelEnsamble(ItemModel pieza) {
@@ -104,12 +112,17 @@ class AppState {
     notificar();
   }
 
-  ItemModel? comprarDesdWishlist() {
-    final pieza = wishlist.dequeue();
+  String? comprarDesdWishlist() {
+    final pieza = wishlist.peek();
     if (pieza != null) {
-      agregarAlEnsamble(pieza);
+      final error = agregarAlEnsamble(pieza);
+      if (error != null) {
+        return error;
+      }
+      wishlist.dequeue();
+      return null;
     }
-    return pieza;
+    return 'Wishlist vacía';
   }
 
   // === Totales ===
