@@ -169,7 +169,7 @@ class ApiService {
     final url = Uri.parse('https://proyecto-final-programacion-hrc6.onrender.com/search?q=${Uri.encodeComponent(query)}');
 
     try {
-      final response = await http.get(url).timeout(const Duration(seconds: 15));
+      final response = await http.get(url).timeout(const Duration(seconds: 60));
       if (response.statusCode == 200) {
         return json.decode(response.body) as List<dynamic>;
       } else {

@@ -212,12 +212,18 @@ class _AssemblyScreenState extends State<AssemblyScreen> {
     final Map<String, List<dynamic>> todosResultados = {};
     final Map<String, String> nuevosPreciosAmazon = {};
 
-    for (final pieza in piezas) {
+    // Ejecutar todas las búsquedas de Amazon en paralelo
+    final futures = piezas.map((pieza) async {
       final resultados = await ApiService.searchAmazon(pieza.nombre);
-      todosResultados[pieza.nombre] = resultados;
-      // Guardar el primer precio encontrado para el PDF
-      if (resultados.isNotEmpty && resultados.first['precio'] != null) {
-        nuevosPreciosAmazon[pieza.nombre] = resultados.first['precio'];
+      return MapEntry(pieza.nombre, resultados);
+    }).toList();
+
+    final respuestas = await Future.wait(futures);
+
+    for (final entry in respuestas) {
+      todosResultados[entry.key] = entry.value;
+      if (entry.value.isNotEmpty && entry.value.first['precio'] != null) {
+        nuevosPreciosAmazon[entry.key] = entry.value.first['precio'];
       }
     }
 
